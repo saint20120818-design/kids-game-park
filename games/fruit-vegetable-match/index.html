@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#68cfdf">
+  <title>蔬果配對小農場</title>
+  <style>
+    :root{--ink:#315064;--sky:#78d9e5;--grass:#78bd39;--soil:#815735}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{font-family:Arial,"Noto Sans TC",sans-serif;color:var(--ink);background:#62bdce;user-select:none;-webkit-user-select:none;touch-action:none}
+    button{font:inherit;color:inherit}
+    .game{position:relative;width:100%;max-width:760px;height:100%;min-height:570px;margin:auto;overflow:hidden;background:linear-gradient(var(--sky) 0 30%,var(--grass) 30% 68%,var(--soil) 68%);box-shadow:0 0 45px #264e6255}
+    .cloud{position:absolute;width:112px;height:33px;border-radius:50px;background:#ffffff55}.cloud::before,.cloud::after{content:"";position:absolute;bottom:0;border-radius:50%;background:inherit}.cloud::before{left:18px;width:48px;height:51px}.cloud::after{right:12px;width:59px;height:61px}.c1{top:9%;left:-20px}.c2{top:17%;right:-35px;transform:scale(.65)}
+    .sun{position:absolute;right:7%;top:9%;width:64px;height:64px;border-radius:50%;background:#ffe568;box-shadow:0 0 0 11px #ffe56844}
+    header{position:relative;z-index:10;padding:calc(10px + env(safe-area-inset-top)) 14px 0;text-align:center;color:white;text-shadow:0 2px 0 #31899c}.top{display:flex;align-items:center;justify-content:space-between}.round{padding:7px 11px;border-radius:99px;background:#ffffffdd;color:#2c8094;font-size:12px;font-weight:1000;text-shadow:none;box-shadow:0 4px 0 #3d9eb2}.title{font-size:clamp(22px,5.5vw,30px);font-weight:1000}.restart{width:41px;height:41px;border:0;border-radius:50%;background:#ffffffe8;color:#38899c;font-size:22px;font-weight:1000;box-shadow:0 4px 0 #3c98aa;cursor:pointer}
+    .hint{display:inline-block;max-width:94%;margin:8px auto 0;padding:8px 15px;border-radius:17px;background:#fffdf0;color:#365768;font-size:14px;font-weight:900;text-shadow:none;box-shadow:0 4px 0 #b9d2c7;transition:.2s}.hint.good{background:#e1f7d8;color:#2d7840}.hint.bad{background:#ffe0d9;color:#9b403b;animation:shake .23s linear 2}
+    .fence{position:absolute;z-index:1;left:0;right:0;top:29%;height:55px;border-top:7px solid #f2f7e8;border-bottom:7px solid #f2f7e8;background:repeating-linear-gradient(90deg,transparent 0 24px,#f4f8ef 24px 43px,transparent 43px 50px);filter:drop-shadow(0 3px #65866a)}
+    .tree{position:absolute;z-index:2;top:22%;font-size:88px;filter:drop-shadow(0 5px 0 #4c713b55)}.tree.left{left:-15px}.tree.right{right:-18px;transform:scale(.86)}
+    .flowers{position:absolute;z-index:2;inset:35% 0 auto;height:120px;color:white;font-size:19px;letter-spacing:75px;overflow:hidden;opacity:.9}
+    .road{position:absolute;z-index:2;left:0;right:0;top:51%;height:17%;background:#91c94d}.road::after{content:"";position:absolute;left:0;right:0;bottom:3px;border-bottom:5px dashed #d8ed98}
+    .vehicle-zone{position:absolute;z-index:5;left:0;right:0;top:25%;height:39%;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .vehicle{position:relative;display:flex;align-items:flex-end;width:max-content;filter:drop-shadow(0 7px 2px #3459374a);pointer-events:auto}.vehicle.exit{animation:driveOut 1.8s ease-in forwards}.vehicle.enter{animation:driveIn .8s ease-out both}
+    .cart{position:relative;width:250px;height:137px;margin-right:12px;padding:13px 14px 35px;border:7px solid #5b432c;border-radius:12px 12px 22px 22px;background:repeating-linear-gradient(#9b744c 0 17px,#7d5938 18px 22px);box-shadow:inset 0 0 0 3px #b99262}.cart::after{content:"";position:absolute;right:-26px;bottom:17px;width:27px;height:9px;border-radius:8px;background:#485945}.cart.wrong{animation:shake .23s linear 2;background:#b56c58}.slots{display:flex;align-items:center;justify-content:center;gap:7px;height:82px}.slot{display:grid;place-items:center;width:64px;height:68px;border:4px dashed #fff6dc;border-radius:16px;background:#493a2c88;color:#ffffffaa;font-size:41px;transition:.25s}.slot.filled{border-style:solid;background:#fff4c5;color:#263c49;animation:pop .35s ease}.cart-label{position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:max-content;color:white;font-size:12px;font-weight:1000;text-shadow:0 2px #4d3323}
+    .tractor{position:relative;width:190px;height:101px;border:6px solid #a43635;border-radius:15px 25px 15px 12px;background:#ef5f55;box-shadow:inset 0 -16px #d44843}.tractor::before{content:"";position:absolute;right:8px;top:-41px;width:85px;height:45px;border:6px solid #9b5627;border-radius:16px 16px 0 0;background:#f6a733}.tractor::after{content:"🧑‍🌾";position:absolute;left:8px;top:-70px;font-size:68px;transform:scaleX(-1)}.hood{position:absolute;right:-3px;top:17px;width:75px;height:42px;border-radius:8px;background:#f5a72e;border:5px solid #bd6927}.wheel{position:absolute;bottom:-31px;width:65px;height:65px;border:8px solid #bed1d4;border-radius:50%;background:#40515b;box-shadow:inset 0 0 0 9px #657983}.wheel.big{left:7px;width:83px;height:83px;bottom:-39px}.wheel.small{right:8px}
+    .soil{position:absolute;z-index:3;left:0;right:0;bottom:0;height:32%;border-top:12px solid #64462f;background:radial-gradient(circle at 12% 22%,#ae8055 0 5px,transparent 6px),radial-gradient(circle at 71% 65%,#60432f 0 7px,transparent 8px),radial-gradient(circle at 44% 38%,#b28258 0 4px,transparent 5px),#815735;background-size:120px 85px,150px 100px,95px 75px}.soil::before{content:"";position:absolute;left:0;right:0;top:-23px;height:25px;background:#815735;clip-path:polygon(0 40%,7% 14%,14% 52%,22% 18%,31% 56%,39% 12%,48% 47%,58% 17%,69% 50%,79% 13%,89% 46%,100% 16%,100% 100%,0 100%)}
+    .crop-row{position:absolute;z-index:7;left:0;right:0;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;align-items:flex-end;justify-content:space-around;height:27%;padding:0 12px}.crop{position:relative;display:grid;place-items:center;width:clamp(57px,15vw,92px);height:clamp(68px,17vw,100px);border:0;background:transparent;font-size:clamp(48px,12vw,73px);cursor:grab;touch-action:none;filter:drop-shadow(0 6px 1px #3f2f2544);transition:opacity .2s,transform .2s}.crop::after{content:"";position:absolute;z-index:-1;left:12%;right:12%;bottom:0;height:17px;border-radius:50%;background:#4e372999}.crop:active{cursor:grabbing}.crop.selected{outline:5px solid #ffe567;border-radius:22px;background:#ffffff44;transform:translateY(-7px)}.crop.used{opacity:0;transform:scale(.25);pointer-events:none}
+    .drag-ghost{position:fixed;z-index:99;display:grid;place-items:center;width:90px;height:90px;font-size:70px;pointer-events:none;transform:translate(-50%,-55%) rotate(-5deg);filter:drop-shadow(0 9px 3px #283f4155)}
+    .complete{position:absolute;z-index:30;inset:0;display:none;place-items:center;padding:24px;background:#51b8cddd;text-align:center}.complete.show{display:grid;animation:fade .3s}.card{width:min(390px,100%);padding:26px 20px;border-radius:30px;background:#fffbea;box-shadow:0 10px 0 #278298}.card .big{font-size:72px;animation:bounce .75s ease-in-out infinite alternate}.card h2{margin:5px 0;color:#2a8298;font-size:31px}.card p{margin:5px 0 18px;font-weight:800}.again{width:100%;min-height:55px;border:0;border-radius:18px;background:#ff806d;color:white;font-size:18px;font-weight:1000;box-shadow:0 7px 0 #ce5749;cursor:pointer}
+    @keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}@keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.15)}}@keyframes driveOut{20%{transform:translateX(18px)}100%{transform:translateX(120vw)}}@keyframes driveIn{from{transform:translateX(-120vw)}to{transform:none}}@keyframes fade{from{opacity:0}}@keyframes bounce{to{transform:translateY(-10px) rotate(4deg)}}
+    @media(max-width:600px){.vehicle{scale:.68}.vehicle-zone{top:27%}.cart{margin-right:8px}.crop-row{padding-inline:4px}.tree{font-size:68px}}
+    @media(max-width:390px){.vehicle{scale:.59}.crop{font-size:48px}.title{font-size:20px}.round{padding:6px 8px}}
+    @media(max-height:650px){.vehicle-zone{top:24%;height:38%}.vehicle{scale:.56}.soil{height:34%}.crop-row{height:29%}.crop{font-size:48px}.hint{margin-top:5px}.title{font-size:20px}}
+  </style>
+</head>
+<body>
+  <main class="game">
+    <div class="cloud c1" aria-hidden="true"></div><div class="cloud c2" aria-hidden="true"></div><div class="sun" aria-hidden="true"></div><div class="fence" aria-hidden="true"></div><div class="tree left" aria-hidden="true">🌳</div><div class="tree right" aria-hidden="true">🌳</div><div class="flowers" aria-hidden="true">✿ ✿ ✿ ✿ ✿</div><div class="road" aria-hidden="true"></div>
+    <header><div class="top"><div class="round">第 1 輪</div><div class="title">🥕 蔬果配對小農場</div><button class="restart" aria-label="重新開始">↻</button></div><div class="hint" role="status" aria-live="polite">把推車需要的蔬果拖進去！</div></header>
+    <section class="vehicle-zone" aria-label="蔬果收集推車"><div class="vehicle"><div class="cart"><div class="slots"></div><b class="cart-label">請幫我收集</b></div><div class="tractor"><i class="hood"></i><i class="wheel big"></i><i class="wheel small"></i></div></div></section>
+    <div class="soil" aria-hidden="true"></div><section class="crop-row" aria-label="土壤裡的蔬果"></section>
+    <section class="complete" aria-live="polite"><div class="card"><div class="big">🧑‍🌾✨</div><h2>全部收完了！</h2><p>你是最棒的小小農夫！</p><button class="again">再玩一次</button></div></section>
+  </main>
+  <script>
+  (()=>{
+    'use strict';
+    const vehicle=document.querySelector('.vehicle'),cart=document.querySelector('.cart'),slots=document.querySelector('.slots'),cropRow=document.querySelector('.crop-row'),hint=document.querySelector('.hint'),roundLabel=document.querySelector('.round'),completeCard=document.querySelector('.complete');
+    const produce=[{id:'carrot',emoji:'🥕',name:'紅蘿蔔'},{id:'tomato',emoji:'🍅',name:'番茄'},{id:'corn',emoji:'🌽',name:'玉米'},{id:'eggplant',emoji:'🍆',name:'茄子'},{id:'broccoli',emoji:'🥦',name:'花椰菜'},{id:'pepper',emoji:'🫑',name:'甜椒'},{id:'potato',emoji:'🥔',name:'馬鈴薯'},{id:'onion',emoji:'🧅',name:'洋蔥'},{id:'pumpkin',emoji:'🎃',name:'南瓜'},{id:'apple',emoji:'🍎',name:'蘋果'},{id:'pear',emoji:'🍐',name:'梨子'},{id:'grape',emoji:'🍇',name:'葡萄'},{id:'strawberry',emoji:'🍓',name:'草莓'},{id:'watermelon',emoji:'🍉',name:'西瓜'},{id:'orange',emoji:'🍊',name:'橘子'}];
+    const rounds=[['carrot','eggplant','pumpkin'],['apple','pear','grape'],['corn','tomato','broccoli'],['strawberry','orange','watermelon'],['potato','onion','pepper'],['carrot','apple','corn']];
+    let round=0,targets=[],matched=0,drag=null,ghost=null,selected=null,audioContext;
+    const byId=id=>produce.find(x=>x.id===id),shuffle=list=>[...list].sort(()=>Math.random()-.5);
+    function tone(freq,start,duration,type='sine',volume=.09){audioContext??=new(window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain(),now=audioContext.currentTime;o.type=type;o.frequency.setValueAtTime(freq,now+start);g.gain.setValueAtTime(volume,now+start);g.gain.exponentialRampToValueAtTime(.001,now+start+duration);o.connect(g).connect(audioContext.destination);o.start(now+start);o.stop(now+start+duration)}
+    function correctSound(){tone(523,0,.12);tone(659,.1,.12);tone(784,.2,.2)}function wrongSound(){tone(190,0,.15,'square',.05);tone(145,.13,.22,'square',.05)}function driveSound(){tone(150,0,.35,'sawtooth',.04);tone(180,.3,.35,'sawtooth',.04);tone(220,.65,.45,'sawtooth',.04)}
+    function setHint(text,state=''){hint.textContent=text;hint.className=`hint ${state}`}
+    function renderRound(){
+      targets=rounds[round];matched=0;selected=null;roundLabel.textContent=`第 ${round+1} 輪`;completeCard.classList.remove('show');vehicle.className='vehicle enter';setHint('把推車需要的蔬果拖進去！');
+      slots.innerHTML='';targets.forEach(id=>{const item=byId(id),slot=document.createElement('div');slot.className='slot';slot.dataset.id=id;slot.textContent=item.emoji;slot.setAttribute('aria-label',`需要${item.name}`);slots.append(slot)});
+      const decoys=shuffle(produce.filter(x=>!targets.includes(x.id))).slice(0,2).map(x=>x.id),items=shuffle([...targets,...decoys]);cropRow.innerHTML='';items.forEach(id=>{const item=byId(id),button=document.createElement('button');button.className='crop';button.dataset.id=id;button.textContent=item.emoji;button.setAttribute('aria-label',item.name);button.addEventListener('pointerdown',startDrag);button.addEventListener('click',()=>selectCrop(button));cropRow.append(button)});setTimeout(()=>vehicle.classList.remove('enter'),850)
+    }
+    function selectCrop(crop){if(crop.classList.contains('used'))return;document.querySelectorAll('.crop').forEach(x=>x.classList.remove('selected'));selected=crop;crop.classList.add('selected');const item=byId(crop.dataset.id);setHint(`已選擇${item.name}，再點一下推車`) }
+    function startDrag(e){if(e.button!==undefined&&e.button!==0)return;e.preventDefault();drag=e.currentTarget;selectCrop(drag);ghost=document.createElement('div');ghost.className='drag-ghost';ghost.textContent=drag.textContent;document.body.append(ghost);moveGhost(e);window.addEventListener('pointermove',moveGhost);window.addEventListener('pointerup',endDrag,{once:true})}
+    function moveGhost(e){if(ghost){ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px'}}
+    function endDrag(e){window.removeEventListener('pointermove',moveGhost);ghost?.remove();ghost=null;const drop=document.elementFromPoint(e.clientX,e.clientY)?.closest('.cart');if(drop)tryCollect(drag);drag=null}
+    cart.addEventListener('click',()=>{if(selected&&!selected.classList.contains('used'))tryCollect(selected)});
+    function tryCollect(crop){
+      const id=crop.dataset.id,slot=[...slots.children].find(x=>x.dataset.id===id&&!x.classList.contains('filled'));
+      if(!slot){wrongSound();cart.classList.remove('wrong');void cart.offsetWidth;cart.classList.add('wrong');setHint('推車不需要這個，再看看圖案！','bad');return}
+      correctSound();crop.classList.add('used');crop.classList.remove('selected');slot.classList.add('filled');slot.textContent=byId(id).emoji;matched++;selected=null;setHint('答對了！繼續收集其他蔬果','good');if(matched===targets.length)setTimeout(depart,650)
+    }
+    function depart(){setHint('全部收好了，推車出發！','good');vehicle.classList.add('exit');driveSound();setTimeout(()=>{round++;if(round===rounds.length){completeCard.classList.add('show');round=0}else renderRound()},1900)}
+    document.querySelector('.restart').addEventListener('click',()=>{round=0;renderRound()});document.querySelector('.again').addEventListener('click',renderRound);document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});renderRound();
+  })();
+  </script>
+</body>
+</html>
+
