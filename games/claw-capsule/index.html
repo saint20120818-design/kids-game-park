@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <title>扭蛋夾夾樂</title>
   <style>
     :root {
@@ -18,17 +18,25 @@
     * {
       box-sizing: border-box;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
+      touch-action: none;
     }
 
     html,
     body {
+      position: fixed;
+      inset: 0;
       width: 100%;
+      max-width: 100%;
       height: 100%;
+      height: 100dvh;
+      max-height: 100%;
       margin: 0;
       overflow: hidden;
       overscroll-behavior: none;
-      touch-action: manipulation;
+      touch-action: none;
     }
 
     body {
@@ -51,6 +59,8 @@
       transform: translate(-50%, -50%) scale(var(--fit-scale));
       transform-origin: center center;
       will-change: transform;
+      contain: layout paint;
+      touch-action: none;
     }
 
     .title-board {
@@ -429,6 +439,7 @@
         inset 0 5px 0 rgba(255,255,255,.35),
         0 7px 0 rgba(0,0,0,.22);
       transition: transform .08s, filter .2s;
+      touch-action: manipulation;
     }
 
     button:active {
@@ -918,6 +929,17 @@
     resetBtn.addEventListener("click", newRound);
     resultCard.addEventListener("click", closeResult);
     playAgainBtn.addEventListener("click", newRound);
+
+    // 鎖定為單頁遊戲：禁止縮放、雙擊縮放、捲動與拖移整個畫面。
+    ["gesturestart", "gesturechange", "gestureend"].forEach((type) => {
+      document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+    });
+    document.addEventListener("dblclick", (event) => event.preventDefault(), { passive: false });
+    document.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
+    document.addEventListener("wheel", (event) => {
+      if (event.ctrlKey) event.preventDefault();
+    }, { passive: false });
+    document.addEventListener("contextmenu", (event) => event.preventDefault());
 
     // 初始化第一局
     newRound();
