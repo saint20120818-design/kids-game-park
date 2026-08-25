@@ -1,0 +1,345 @@
+<h2 class="sr-only">顏色卡牌順序選擇遊戲，共六關</h2>
+<style>
+  :root, html, body { background: #000 !important; }
+  .game-outer { background:#000; width:100vw; min-height:100vh; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw); margin-top:-1rem; margin-bottom:-1rem; padding:4vh 0; display:flex; align-items:flex-start; justify-content:center; }
+  .game-wrap { width:80%; max-width:720px; min-height:92vh; font-family:var(--font-sans); --slot-w:130px; --slot-h:210px; --slot-gap:20px; background:#000; display:flex; flex-direction:column; }
+  .game-wrap * { box-sizing:border-box; }
+  .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; font-size:26px; color:#c0c0c0; padding:8px 4px 0; }
+  .stage-info { font-weight:500; color:#fff; font-size:30px; }
+  .attempts { font-size:25px; color:#888; }
+  .hint { font-size:25px; color:#c0c0c0; text-align:center; margin:10px 0 18px; min-height:34px; padding:0 12px; line-height:1.35; }
+
+  .answer-row, .working-row, .palette { display:flex; justify-content:center; gap:var(--slot-gap); flex-wrap:wrap; }
+  .answer-row { margin-bottom:12px; }
+  .slot { width:var(--slot-w); height:var(--slot-h); border-radius:10px; border:2px dashed #555; background:#141414; display:flex; align-items:center; justify-content:center; position:relative; transition:transform .25s ease, background .25s, border-color .25s; }
+  .slot::after { content:''; width:18px; height:18px; border-radius:999px; background:#3a3a3a; opacity:.9; }
+  .slot.filled { background:var(--slot-color,#ccc); border-style:solid; border-color:transparent; animation:popIn .35s ease; }
+  .slot.filled::after { display:none; }
+  @keyframes popIn { 0%{transform:scale(.86);opacity:.25;} 75%{transform:scale(1.06);opacity:1;} 100%{transform:scale(1);} }
+
+  .history { max-height:28vh; overflow-y:auto; margin:6px 0 18px; padding:0 8px; }
+  .history-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; opacity:.95; }
+  .history-title { min-width:60px; color:#aaa; font-size:17px; text-align:right; }
+  .mini { width:calc(var(--slot-w) * .55); height:calc(var(--slot-h) * .5); border-radius:6px; background:var(--mini-color,#ccc); border:1px solid rgba(255,255,255,.18); }
+  .history-note { min-width:150px; color:#c0c0c0; font-size:17px; }
+  .history-note .hit { color:#6dd3a8; font-weight:600; }
+
+  .working-row { margin:10px 0 18px; min-height:var(--slot-h); padding:0 8px; }
+  .working-slot { width:var(--slot-w); height:var(--slot-h); border-radius:10px; border:2px dashed #555; background:#141414; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+  .working-slot.locked-placeholder { opacity:.2; cursor:default; }
+  .working-slot.has-card { border-style:solid; border-color:transparent; background:var(--slot-color); }
+  .working-slot.has-card::after { content:'×'; position:absolute; top:6px; right:12px; color:rgba(255,255,255,.95); font-size:24px; font-weight:500; }
+
+  .palette-label { text-align:center; font-size:25px; color:#888; margin:20px 0 14px; letter-spacing:.05em; }
+  .palette { padding:0 8px 24px; }
+  .card { width:var(--slot-w); height:var(--slot-h); border-radius:10px; background:var(--card-color); cursor:pointer; transition:transform .18s ease, opacity .18s, box-shadow .18s; border:1px solid rgba(255,255,255,.1); position:relative; }
+  .card:hover { transform:translateY(-5px); }
+  .card.used { opacity:.25; cursor:not-allowed; transform:none; }
+
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.95); display:none; align-items:center; justify-content:center; flex-direction:column; gap:18px; z-index:100; padding:1.5rem; }
+  .modal.show { display:flex; }
+  .modal h3 { margin:0; font-size:38px; font-weight:500; text-align:center; color:#fff; }
+  .modal p { margin:0; font-size:28px; color:#c0c0c0; text-align:center; }
+  .countdown { font-size:25px; color:#888; margin-top:4px; }
+
+  @media (max-width:600px) { .game-wrap{width:92%; --slot-w:130px; --slot-h:210px; --slot-gap:20px;} }
+  @media (max-width:440px) { .game-wrap{--slot-w:72px; --slot-h:120px; --slot-gap:10px;} .history-title,.history-note{font-size:14px;min-width:auto;} .mini{width:calc(var(--slot-w) * .7);height:calc(var(--slot-h) * .6);} }
+  @media (max-width:360px) { .game-wrap{--slot-w:60px; --slot-h:100px; --slot-gap:8px;} }
+</style>
+
+<div class="game-outer">
+  <div class="game-wrap">
+    <div class="top-bar">
+      <div class="stage-info" id="stage-info">第 1 關 · 選 3 張</div>
+      <div class="attempts" id="attempts">回合: 0</div>
+    </div>
+
+    <div class="answer-row" id="answer-row"></div>
+    <div class="hint" id="hint">依序選滿本關張數，系統會自動確認；位置正確的牌會鎖在上方</div>
+    <div class="history" id="history"></div>
+    <div class="working-row" id="working-row"></div>
+    <div class="palette-label">可選顏色</div>
+    <div class="palette" id="palette"></div>
+  </div>
+
+  <div class="modal" id="modal">
+    <h3 id="modal-title">過關!</h3>
+    <p id="modal-text"></p>
+    <div class="countdown" id="countdown"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  try {
+    document.documentElement.style.background = '#000';
+    document.body.style.background = '#000';
+    document.body.style.margin = '0';
+  } catch(e) {}
+
+  const COLORS = [
+    { name:'red', hex:'#E24B4A', zh:'紅' },
+    { name:'blue', hex:'#378ADD', zh:'藍' },
+    { name:'yellow', hex:'#EF9F27', zh:'黃' },
+    { name:'green', hex:'#97C459', zh:'綠' },
+    { name:'purple', hex:'#7F77DD', zh:'紫' }
+  ];
+
+  const STAGES = [
+    { stage:1, size:3 },
+    { stage:2, size:3 },
+    { stage:3, size:4 },
+    { stage:4, size:4 },
+    { stage:5, size:5 },
+    { stage:6, size:5 }
+  ];
+
+  const REVEAL_DELAY_MS = 3000;
+  const AUTO_CHECK_DELAY_MS = 250;
+
+  let stageIdx = 0;
+  let answer = [];
+  let stageColors = [];
+  let solvedCards = [];
+  let working = [];
+  let history = [];
+  let attempts = 0;
+  let solved = false;
+  let autoAdvanceTimer = null;
+  let countdownTimer = null;
+  let autoCheckTimer = null;
+
+  const $stageInfo = document.getElementById('stage-info');
+  const $attempts = document.getElementById('attempts');
+  const $answerRow = document.getElementById('answer-row');
+  const $hint = document.getElementById('hint');
+  const $history = document.getElementById('history');
+  const $workingRow = document.getElementById('working-row');
+  const $palette = document.getElementById('palette');
+  const $modal = document.getElementById('modal');
+  const $modalTitle = document.getElementById('modal-title');
+  const $modalText = document.getElementById('modal-text');
+  const $countdown = document.getElementById('countdown');
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function startStage() {
+    const s = STAGES[stageIdx];
+    stageColors = shuffle(COLORS).slice(0, s.size).map(c => c.name);
+    answer = shuffle(stageColors);
+    solvedCards = new Array(s.size).fill(null);
+    working = new Array(s.size).fill(null);
+    history = [];
+    attempts = 0;
+    solved = false;
+    $stageInfo.textContent = `第 ${s.stage} 關 · 選 ${s.size} 張`;
+    $modal.classList.remove('show');
+    clearTimers();
+    render();
+  }
+
+  function clearTimers() {
+    if (autoAdvanceTimer) { clearTimeout(autoAdvanceTimer); autoAdvanceTimer = null; }
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    if (autoCheckTimer) { clearTimeout(autoCheckTimer); autoCheckTimer = null; }
+  }
+
+  function colorOf(name) {
+    const c = COLORS.find(c => c.name === name);
+    return c ? c.hex : '#ccc';
+  }
+
+  function zhOf(name) {
+    const c = COLORS.find(c => c.name === name);
+    return c ? c.zh : '';
+  }
+
+  function isLocked(name) {
+    return solvedCards.includes(name);
+  }
+
+  function openPositionCount() {
+    return solvedCards.filter(v => v === null).length;
+  }
+
+  function selectedCount() {
+    return working.filter(Boolean).length;
+  }
+
+  function isReadyToCheck() {
+    return selectedCount() === openPositionCount() && openPositionCount() > 0;
+  }
+
+  function render() {
+    const size = answer.length;
+
+    $answerRow.innerHTML = '';
+    for (let i = 0; i < size; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      if (solvedCards[i]) {
+        slot.classList.add('filled');
+        slot.style.setProperty('--slot-color', colorOf(solvedCards[i]));
+        slot.setAttribute('aria-label', zhOf(solvedCards[i]));
+      }
+      $answerRow.appendChild(slot);
+    }
+
+    $attempts.textContent = `回合: ${attempts}`;
+
+    $history.innerHTML = '';
+    history.forEach((h, idx) => {
+      const row = document.createElement('div');
+      row.className = 'history-row';
+
+      const title = document.createElement('div');
+      title.className = 'history-title';
+      title.textContent = `第${idx + 1}次`;
+      row.appendChild(title);
+
+      h.guess.forEach(name => {
+        const mini = document.createElement('div');
+        mini.className = 'mini';
+        mini.style.setProperty('--mini-color', colorOf(name));
+        mini.setAttribute('aria-label', zhOf(name));
+        row.appendChild(mini);
+      });
+
+      const note = document.createElement('div');
+      note.className = 'history-note';
+      note.innerHTML = `<span class="hit">位置正確 ${h.hitCount}</span> 張`;
+      row.appendChild(note);
+      $history.appendChild(row);
+    });
+    $history.scrollTop = $history.scrollHeight;
+
+    $workingRow.innerHTML = '';
+    for (let i = 0; i < size; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'working-slot';
+      if (solvedCards[i]) {
+        slot.classList.add('locked-placeholder');
+      } else if (working[i]) {
+        slot.classList.add('has-card');
+        slot.style.setProperty('--slot-color', colorOf(working[i]));
+        slot.setAttribute('aria-label', zhOf(working[i]));
+        slot.addEventListener('click', () => {
+          if (solved) return;
+          working[i] = null;
+          render();
+        });
+      }
+      $workingRow.appendChild(slot);
+    }
+
+    $palette.innerHTML = '';
+    stageColors.forEach(name => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.setProperty('--card-color', colorOf(name));
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', zhOf(name));
+
+      if (isLocked(name) || working.includes(name) || solved) {
+        card.classList.add('used');
+      } else {
+        card.addEventListener('click', () => chooseCard(name));
+      }
+      $palette.appendChild(card);
+    });
+
+    const lockedCount = solvedCards.filter(Boolean).length;
+    const needCount = openPositionCount();
+    const selected = selectedCount();
+    if (solved) {
+      $hint.textContent = '全部位置正確，準備進入下一關。';
+    } else if (history.length === 0 && selected === 0) {
+      $hint.textContent = `本關共有 ${size} 張可選顏色，依順序選滿 ${needCount} 張後會自動確認。`;
+    } else if (selected < needCount) {
+      $hint.textContent = `已選 ${selected} / ${needCount} 張，上方已鎖定 ${lockedCount} 張。`;
+    } else {
+      $hint.textContent = '已選滿，正在自動確認。';
+    }
+  }
+
+  function chooseCard(name) {
+    if (solved || isLocked(name) || working.includes(name)) return;
+    const empty = working.findIndex((v, idx) => v === null && solvedCards[idx] === null);
+    if (empty === -1) return;
+    working[empty] = name;
+    render();
+
+    if (isReadyToCheck()) {
+      if (autoCheckTimer) clearTimeout(autoCheckTimer);
+      autoCheckTimer = setTimeout(submitGuess, AUTO_CHECK_DELAY_MS);
+    }
+  }
+
+  function submitGuess() {
+    if (solved || !isReadyToCheck()) return;
+    autoCheckTimer = null;
+
+    attempts++;
+    const guess = [];
+    let hitCount = 0;
+
+    for (let i = 0; i < answer.length; i++) {
+      const name = solvedCards[i] || working[i];
+      guess.push(name);
+      if (!solvedCards[i] && working[i] === answer[i]) {
+        solvedCards[i] = working[i];
+        hitCount++;
+      }
+    }
+
+    history.push({ guess, hitCount });
+    working = new Array(answer.length).fill(null);
+
+    if (solvedCards.every(Boolean)) {
+      solved = true;
+      render();
+      setTimeout(showResultThenAdvance, REVEAL_DELAY_MS);
+    } else {
+      render();
+    }
+  }
+
+  function showResultThenAdvance() {
+    const isLast = stageIdx === STAGES.length - 1;
+    $modalTitle.textContent = isLast ? '比賽結束!恭喜通關' : `第 ${STAGES[stageIdx].stage} 關過關!`;
+    $modalText.textContent = isLast
+      ? `共完成 6 關，最後一關用了 ${attempts} 回合。`
+      : `本關用了 ${attempts} 回合完成。`;
+    $modal.classList.add('show');
+
+    let remaining = Math.ceil(REVEAL_DELAY_MS / 1000);
+    $countdown.textContent = `${remaining} 秒後自動進入下一關...`;
+    countdownTimer = setInterval(() => {
+      remaining--;
+      $countdown.textContent = remaining > 0 ? `${remaining} 秒後自動進入下一關...` : '';
+    }, 1000);
+
+    autoAdvanceTimer = setTimeout(() => {
+      clearTimers();
+      advance();
+    }, REVEAL_DELAY_MS);
+  }
+
+  function advance() {
+    stageIdx = stageIdx === STAGES.length - 1 ? 0 : stageIdx + 1;
+    startStage();
+  }
+
+  startStage();
+})();
+</script>
+
+<script src="../../assets/home-button.js"></script>
+
