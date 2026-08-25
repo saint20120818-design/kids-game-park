@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>扭蛋夾夾樂</title>
+  <style>
+    :root {
+      --pink: #ff4f9b;
+      --pink-dark: #d82d77;
+      --yellow: #ffd94a;
+      --panel: #ff86b6;
+      --green: #67d91f;
+      --green-dark: #3baa0c;
+      --machine-w: min(94vw, 500px);
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(255,255,255,.12), transparent 28%),
+        linear-gradient(180deg, #12314b 0%, #071925 100%);
+      color: #fff;
+    }
+
+    .game-shell {
+      --fit-scale: 1;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: var(--machine-w);
+      text-align: center;
+      transform: translate(-50%, -50%) scale(var(--fit-scale));
+      transform-origin: center center;
+      will-change: transform;
+    }
+
+    .title-board {
+      position: relative;
+      margin: 0 auto -12px;
+      width: 88%;
+      padding: 18px 20px 24px;
+      border: 6px solid var(--yellow);
+      border-radius: 38px 38px 20px 20px;
+      background: linear-gradient(#ff9cc7, #f95ca5);
+      box-shadow:
+        inset 0 0 0 5px rgba(255,255,255,.35),
+        0 8px 0 #bd2869,
+        0 12px 28px rgba(0,0,0,.4);
+      z-index: 3;
+    }
+
+    .title-board h1 {
+      margin: 0;
+      color: #fff067;
+      font-size: clamp(28px, 7vw, 42px);
+      text-shadow:
+        0 4px 0 #bd5c00,
+        2px 0 0 #bd5c00,
+        -2px 0 0 #bd5c00;
+      letter-spacing: 4px;
+    }
+
+    .machine {
+      position: relative;
+      padding: 40px 20px 22px;
+      border: 8px solid var(--yellow);
+      border-radius: 36px;
+      background: linear-gradient(90deg, #eb337e, #ff6eaa 14%, #ff7ab4 86%, #e82e77);
+      box-shadow:
+        inset 0 0 0 6px rgba(255,255,255,.25),
+        0 14px 35px rgba(0,0,0,.45);
+    }
+
+    .glass {
+      position: relative;
+      height: clamp(370px, 72vw, 470px);
+      overflow: hidden;
+      border: 7px solid #ffbd31;
+      border-radius: 20px 20px 34px 34px;
+      background:
+        radial-gradient(circle at 45% 25%, rgba(255,255,255,.8), transparent 8%),
+        linear-gradient(180deg, #ffe76e 0%, #ffd341 55%, #ffbb28 100%);
+      box-shadow:
+        inset 0 0 35px rgba(255,255,255,.7),
+        inset 0 -25px 30px rgba(255,118,0,.18);
+    }
+
+    .glass::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.28), transparent 22% 72%, rgba(255,255,255,.14));
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    .rail {
+      position: absolute;
+      left: 7%;
+      right: 7%;
+      top: 26px;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(#93d7ff, #2a8fd7);
+      box-shadow: 0 3px 0 #166aa5;
+      z-index: 4;
+    }
+
+    .claw-carriage {
+      position: absolute;
+      top: 15px;
+      left: 8%;
+      width: 86px;
+      height: 185px;
+      transform: translateX(0);
+      transition: left .8s ease-in-out;
+      z-index: 1;
+    }
+
+    /* 向下夾取時，爪子保持在扭蛋堆後方 */
+    .claw-carriage.behind {
+      z-index: 1;
+    }
+
+    /* 夾到扭蛋並開始上升後，才移到扭蛋堆前方 */
+    .claw-carriage.holding {
+      z-index: 5;
+    }
+
+    .claw-carriage.drop {
+      animation: dropClaw 1.2s ease-in-out forwards;
+    }
+
+    .claw-carriage.returning {
+      animation: liftClaw 1.05s ease-in-out forwards;
+    }
+
+    @keyframes dropClaw {
+      0% { transform: translateY(0); }
+      65% { transform: translateY(205px); }
+      100% { transform: translateY(205px); }
+    }
+
+    @keyframes liftClaw {
+      0% { transform: translateY(205px); }
+      100% { transform: translateY(0); }
+    }
+
+    .stem {
+      width: 14px;
+      height: 72px;
+      margin: 0 auto;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #b7d0de, #fff, #9ab7c7);
+      box-shadow: 0 0 0 3px #6e96aa;
+    }
+
+    .hub {
+      width: 58px;
+      height: 46px;
+      margin: -2px auto 0;
+      border-radius: 18px;
+      background: #47b8f3;
+      border: 4px solid #2476a9;
+      position: relative;
+    }
+
+    .hub::after {
+      content: "";
+      position: absolute;
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      inset: 0;
+      margin: auto;
+      background: var(--yellow);
+      box-shadow: 0 0 0 3px #e5a800;
+    }
+
+    .arm {
+      position: absolute;
+      top: 104px;
+      width: 13px;
+      height: 66px;
+      border-radius: 10px;
+      transform-origin: top;
+      background: linear-gradient(90deg, #b6c6ce, #fff, #879da8);
+      border: 3px solid #78909c;
+    }
+
+    .arm.left {
+      left: 28px;
+      transform: rotate(34deg);
+    }
+
+    .arm.right {
+      right: 28px;
+      transform: rotate(-34deg);
+    }
+
+    .claw-carriage.closed .arm.left {
+      animation: closeLeft .3s forwards;
+    }
+
+    .claw-carriage.closed .arm.right {
+      animation: closeRight .3s forwards;
+    }
+
+    @keyframes closeLeft {
+      to { transform: rotate(12deg); }
+    }
+
+    @keyframes closeRight {
+      to { transform: rotate(-12deg); }
+    }
+
+    .capsule-pile {
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      bottom: 8px;
+      height: 220px;
+      z-index: 3;
+    }
+
+    .ball {
+      position: absolute;
+      width: clamp(70px, 18vw, 100px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 5px solid rgba(172,78,0,.25);
+      box-shadow:
+        inset 10px 12px 14px rgba(255,255,255,.4),
+        inset -8px -10px 13px rgba(88,0,0,.18),
+        0 6px 5px rgba(142,74,0,.25);
+    }
+
+    .ball::after {
+      content: "★";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 46%;
+      color: rgba(255,255,255,.33);
+      text-shadow: 0 2px 2px rgba(0,0,0,.2);
+    }
+
+    .b1 { left: 4%; bottom: 7%; background:#9b42ef; }
+    .b2 { left: 20%; bottom: 1%; background:#3bbcff; }
+    .b3 { left: 38%; bottom: 2%; background:#37d44c; }
+    .b4 { left: 57%; bottom: 5%; background:#ffd736; }
+    .b5 { left: 72%; bottom: 2%; background:#ff694e; }
+    .b6 { left: 13%; bottom: 32%; background:#49dea8; }
+    .b7 { left: 31%; bottom: 43%; background:#35bdf4; }
+    .b8 { left: 47%; bottom: 37%; background:#ff851c; }
+    .b9 { left: 65%; bottom: 34%; background:#ef4f7d; }
+    .b10 { left: 80%; bottom: 27%; background:#ffe743; }
+
+    .caught-ball {
+      position: absolute;
+      top: 122px;
+      left: 14px;
+      width: 58px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #ff8c2e;
+      border: 4px solid rgba(160,65,0,.3);
+      opacity: 0;
+      transform: scale(.5);
+      transition: opacity .2s, transform .2s;
+      box-shadow: inset 8px 8px 10px rgba(255,255,255,.45);
+    }
+
+    .caught-ball.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .result-card {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      background: rgba(18,22,38,.65);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .28s;
+    }
+
+    .result-card.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-inner {
+      width: 74%;
+      padding: 24px 18px;
+      border: 6px solid #fff;
+      border-radius: 28px;
+      background: linear-gradient(#ff77b0, #e43d87);
+      box-shadow: 0 12px 30px rgba(0,0,0,.4);
+      transform: scale(.6) rotate(-5deg);
+      transition: transform .35s cubic-bezier(.2,1.5,.45,1);
+    }
+
+    .result-card.show .result-inner {
+      transform: scale(1) rotate(0);
+    }
+
+    .result-emoji {
+      font-size: clamp(76px, 22vw, 120px);
+      line-height: 1;
+    }
+
+    .result-name {
+      margin-top: 10px;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .result-hint {
+      margin-top: 8px;
+      font-size: 15px;
+      opacity: .85;
+    }
+
+    .control-panel {
+      padding: 18px 10px 6px;
+    }
+
+    .message {
+      min-height: 58px;
+      display: grid;
+      place-items: center;
+      font-size: clamp(18px, 4vw, 24px);
+      font-weight: 800;
+      line-height: 1.5;
+      text-shadow: 0 2px 0 rgba(148,23,76,.7);
+    }
+
+    .animal-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 9px;
+      margin: 10px 0 16px;
+    }
+
+    .animal-slot {
+      position: relative;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      border: 3px solid rgba(255,255,255,.48);
+      background: #737782;
+      filter: grayscale(1);
+      opacity: .62;
+      font-size: clamp(30px, 8vw, 48px);
+      transition: transform .35s, filter .35s, opacity .35s, background .35s;
+    }
+
+    .animal-slot.active {
+      filter: none;
+      opacity: 1;
+      background: linear-gradient(#fff5a4, #ffd44f);
+      transform: scale(1.08);
+      animation: pop .55s ease;
+      box-shadow: 0 0 18px rgba(255,235,78,.85);
+    }
+
+    .animal-slot.active::after {
+      content: "✓";
+      position: absolute;
+      right: -4px;
+      bottom: -6px;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #53ce29;
+      border: 3px solid white;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(.65) rotate(-12deg); }
+      65% { transform: scale(1.2) rotate(5deg); }
+      100% { transform: scale(1.08) rotate(0); }
+    }
+
+    .action-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 3px 0 rgba(0,0,0,.24);
+      box-shadow:
+        inset 0 5px 0 rgba(255,255,255,.35),
+        0 7px 0 rgba(0,0,0,.22);
+      transition: transform .08s, filter .2s;
+    }
+
+    button:active {
+      transform: translateY(5px);
+      box-shadow: inset 0 3px 0 rgba(255,255,255,.3), 0 2px 0 rgba(0,0,0,.22);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      filter: grayscale(.6) brightness(.75);
+    }
+
+    #playBtn {
+      flex: 1;
+      max-width: 330px;
+      min-height: 78px;
+      border: 5px solid #3f9f0e;
+      border-radius: 30px;
+      background: linear-gradient(#83ee34, #4fc70b);
+      font-size: clamp(22px, 5vw, 30px);
+    }
+
+    #resetBtn {
+      width: 88px;
+      border: 5px solid #b32260;
+      border-radius: 26px;
+      background: linear-gradient(#ff6fa9, #ea357d);
+      font-size: 18px;
+    }
+
+    .progress {
+      margin-top: 12px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .win-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background:
+        radial-gradient(circle, rgba(255,232,74,.18), rgba(0,0,0,.72));
+    }
+
+    .win-overlay.show {
+      display: grid;
+      animation: fadeIn .45s;
+    }
+
+    .win-box {
+      max-width: 440px;
+      width: 100%;
+      padding: 32px 24px;
+      border: 8px solid #fff06b;
+      border-radius: 36px;
+      background: linear-gradient(#ff77b4, #e93281);
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      text-align: center;
+      animation: winBounce .7s cubic-bezier(.2,1.5,.35,1);
+    }
+
+    .win-box h2 {
+      margin: 0 0 12px;
+      font-size: 42px;
+      color: #fff46c;
+      text-shadow: 0 4px 0 #a84f00;
+    }
+
+    .win-box p {
+      font-size: 20px;
+      line-height: 1.6;
+    }
+
+    .win-animals {
+      font-size: 38px;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .win-box button {
+      margin-top: 18px;
+      padding: 15px 30px;
+      border-radius: 22px;
+      background: linear-gradient(#88ed37, #51c80c);
+      font-size: 22px;
+      border: 4px solid #379c0a;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes winBounce {
+      from { transform: scale(.4) rotate(-8deg); }
+      to { transform: scale(1) rotate(0); }
+    }
+
+
+    /* 手機橫向或高度較短時，先壓縮不必要的垂直間距 */
+    @media (max-height: 760px) {
+      .title-board {
+        padding-top: 10px;
+        padding-bottom: 16px;
+      }
+
+      .title-board h1 {
+        font-size: 30px;
+      }
+
+      .machine {
+        padding-top: 30px;
+        padding-bottom: 14px;
+      }
+
+      .glass {
+        height: 350px;
+      }
+
+      .control-panel {
+        padding-top: 10px;
+      }
+
+      .message {
+        min-height: 44px;
+        font-size: 18px;
+      }
+
+      .animal-grid {
+        margin-top: 6px;
+        margin-bottom: 10px;
+      }
+
+      #playBtn {
+        min-height: 64px;
+      }
+
+      .progress {
+        margin-top: 8px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .machine { padding-left: 12px; padding-right: 12px; }
+      .animal-grid { gap: 6px; }
+      .animal-slot { border-radius: 13px; }
+      .glass { height: 390px; }
+      @keyframes dropClaw {
+        0% { transform: translateY(0); }
+        65% { transform: translateY(170px); }
+        100% { transform: translateY(170px); }
+      }
+      @keyframes liftClaw {
+        0% { transform: translateY(170px); }
+        100% { transform: translateY(0); }
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell">
+    <section class="title-board">
+      <h1>扭蛋夾夾樂</h1>
+    </section>
+
+    <section class="machine">
+      <div class="glass" id="glass">
+        <div class="rail"></div>
+
+        <div class="claw-carriage" id="claw">
+          <div class="stem"></div>
+          <div class="hub"></div>
+          <div class="arm left"></div>
+          <div class="arm right"></div>
+          <div class="caught-ball" id="caughtBall"></div>
+        </div>
+
+        <div class="capsule-pile" id="capsulePile" aria-hidden="true"></div>
+
+        <div class="result-card" id="resultCard">
+          <div class="result-inner">
+            <div class="result-emoji" id="resultEmoji">🐶</div>
+            <div class="result-name" id="resultName">狗狗</div>
+            <div class="result-hint">點一下繼續</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-panel">
+        <div class="message" id="message">
+          按下按鈕，夾滿這局的 10 種扭蛋！
+        </div>
+
+        <div class="animal-grid" id="animalGrid"></div>
+
+        <div class="action-row">
+          <button id="playBtn">開始夾取</button>
+          <button id="resetBtn">重置</button>
+        </div>
+
+        <div class="progress" id="progress">已收集 0 / 10</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-box">
+      <h2>收集完成！</h2>
+      <div class="win-animals" id="winAnimals"></div>
+      <p>恭喜你夾到這局全部的扭蛋！</p>
+      <button id="playAgainBtn">再玩一次</button>
+    </div>
+  </div>
+
+  <script>
+    // 50 種動物 + 50 種水果，每一局隨機抽 10 種來夾。
+    const ANIMAL_DATA = [
+      ["🐶","狗狗"],["🐱","貓咪"],["🐭","老鼠"],["🐹","倉鼠"],["🐰","兔子"],
+      ["🦊","狐狸"],["🐻","小熊"],["🐼","熊貓"],["🐨","無尾熊"],["🐯","老虎"],
+      ["🦁","獅子"],["🐮","乳牛"],["🐷","小豬"],["🐸","青蛙"],["🐵","猴子"],
+      ["🐔","小雞"],["🐧","企鵝"],["🐦","小鳥"],["🐤","雛鳥"],["🦆","鴨子"],
+      ["🦅","老鷹"],["🦉","貓頭鷹"],["🦇","蝙蝠"],["🐺","狼"],["🐗","山豬"],
+      ["🐴","小馬"],["🦄","獨角獸"],["🐝","蜜蜂"],["🦋","蝴蝶"],["🐌","蝸牛"],
+      ["🐞","瓢蟲"],["🐜","螞蟻"],["🦂","蠍子"],["🐢","烏龜"],["🐍","蛇"],
+      ["🦎","蜥蜴"],["🦖","暴龍"],["🦕","長頸龍"],["🐙","章魚"],["🦑","魷魚"],
+      ["🦐","蝦子"],["🦀","螃蟹"],["🐡","河豚"],["🐠","熱帶魚"],["🐬","海豚"],
+      ["🐳","鯨魚"],["🦈","鯊魚"],["🐊","鱷魚"],["🦓","斑馬"],["🦒","長頸鹿"]
+    ];
+
+    const FRUIT_DATA = [
+      ["🍎","蘋果"],["🍏","青蘋果"],["🍐","梨子"],["🍊","橘子"],["🍋","檸檬"],
+      ["🍌","香蕉"],["🍉","西瓜"],["🍇","葡萄"],["🍓","草莓"],["🫐","藍莓"],
+      ["🍈","哈密瓜"],["🍒","櫻桃"],["🍑","水蜜桃"],["🥭","芒果"],["🍍","鳳梨"],
+      ["🥥","椰子"],["🥝","奇異果"],["🍅","番茄"],["🫒","橄欖"],["🥑","酪梨"],
+      ["🍊","柳丁"],["🍊","葡萄柚"],["🍊","金桔"],["🍊","椪柑"],["🍈","香瓜"],
+      ["🍈","火龍果"],["🥭","木瓜"],["🍇","荔枝"],["🍇","龍眼"],["🍇","巨峰葡萄"],
+      ["🍇","桑葚"],["🍒","蔓越莓"],["🫐","覆盆莓"],["🍓","紅莓"],["🍑","枇杷"],
+      ["🍑","油桃"],["🍐","芭樂"],["🍐","楊桃"],["🍎","富士蘋果"],["🍎","蜜蘋果"],
+      ["🍌","芭蕉"],["🍈","洋香瓜"],["🥭","百香果"],["🥭","釋迦"],["🍊","柚子"],
+      ["🍊","桶柑"],["🥥","山竹"],["🍇","提子"],["🍑","杏桃"],["🍎","海棠果"]
+    ];
+
+    const ANIMALS = ANIMAL_DATA.map(([emoji, name], i) => ({ id: "a" + i, emoji, name, type: "animal" }));
+    const FRUITS  = FRUIT_DATA.map(([emoji, name], i) => ({ id: "f" + i, emoji, name, type: "fruit" }));
+    const POOL = [...ANIMALS, ...FRUITS];
+    const TARGET_COUNT = 10;
+
+    const animalGrid = document.getElementById("animalGrid");
+    const capsulePile = document.getElementById("capsulePile");
+    const playBtn = document.getElementById("playBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const claw = document.getElementById("claw");
+    const caughtBall = document.getElementById("caughtBall");
+    const resultCard = document.getElementById("resultCard");
+    const resultEmoji = document.getElementById("resultEmoji");
+    const resultName = document.getElementById("resultName");
+    const message = document.getElementById("message");
+    const progress = document.getElementById("progress");
+    const winOverlay = document.getElementById("winOverlay");
+    const winAnimals = document.getElementById("winAnimals");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+
+    let targets = [];
+    let collected = new Set();
+    let isPlaying = false;
+    let waitingForResultClose = false;
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const shuffle = (arr) => arr
+      .map((v) => [Math.random(), v])
+      .sort((a, b) => a[0] - b[0])
+      .map((x) => x[1]);
+
+    // 從 100 種裡抽 10 種，並且同一局不出現重複的圖案（emoji）。
+    function pickTargets(n = TARGET_COUNT) {
+      const chosen = [];
+      const usedEmoji = new Set();
+      for (const item of shuffle(POOL)) {
+        if (usedEmoji.has(item.emoji)) continue;
+        usedEmoji.add(item.emoji);
+        chosen.push(item);
+        if (chosen.length === n) break;
+      }
+      return chosen;
+    }
+
+    const CAPSULE_COLORS = [
+      "#9b42ef", "#3bbcff", "#37d44c", "#ffd736", "#ff694e", "#49dea8",
+      "#35bdf4", "#ff851c", "#ef4f7d", "#ffe743", "#8a5cff", "#ff5aa0"
+    ];
+
+    function randomCapsuleColor() {
+      return CAPSULE_COLORS[Math.floor(Math.random() * CAPSULE_COLORS.length)];
+    }
+
+    // 隨機生成一堆扭蛋，位置、大小、旋轉都亂一點，看起來像自然堆疊。
+    function buildCapsulePile() {
+      capsulePile.innerHTML = "";
+      const count = 14;
+      const colors = shuffle(CAPSULE_COLORS);
+      for (let k = 0; k < count; k++) {
+        const ball = document.createElement("div");
+        ball.className = "ball";
+        const size = 58 + Math.random() * 40;          // 58–98px
+        const left = 1 + Math.random() * 72;           // 1–73%
+        const bottom = Math.pow(Math.random(), 1.6) * 50; // 偏下方堆疊 0–50%
+        const rot = Math.random() * 28 - 14;           // -14°–14°
+        ball.style.width = size.toFixed(0) + "px";
+        ball.style.left = left.toFixed(1) + "%";
+        ball.style.bottom = bottom.toFixed(1) + "%";
+        ball.style.transform = "rotate(" + rot.toFixed(1) + "deg)";
+        ball.style.background = colors[k % colors.length];
+        ball.style.zIndex = String(Math.round(50 - bottom)); // 越下面越靠前
+        capsulePile.appendChild(ball);
+      }
+    }
+
+    function buildAnimalGrid() {
+      animalGrid.innerHTML = "";
+      targets.forEach((item) => {
+        const slot = document.createElement("div");
+        slot.className = "animal-slot";
+        slot.id = "slot-" + item.id;
+        slot.title = item.name;
+        slot.textContent = item.emoji;
+        animalGrid.appendChild(slot);
+      });
+    }
+
+    function updateProgress() {
+      progress.textContent = "已收集 " + collected.size + " / " + targets.length;
+      playBtn.textContent = collected.size === targets.length
+        ? "全部完成"
+        : "開始夾取（還差 " + (targets.length - collected.size) + " 種）";
+    }
+
+    function chooseTarget() {
+      // 70% 機率優先抽尚未收集到的，避免一直重複、拖太久。
+      const remaining = targets.filter((t) => !collected.has(t.id));
+      if (remaining.length > 0 && Math.random() < 0.7) {
+        return remaining[Math.floor(Math.random() * remaining.length)];
+      }
+      return targets[Math.floor(Math.random() * targets.length)];
+    }
+
+    async function playClaw() {
+      if (isPlaying || waitingForResultClose || collected.size === targets.length) return;
+
+      isPlaying = true;
+      playBtn.disabled = true;
+      resetBtn.disabled = true;
+      message.textContent = "爪子移動中…";
+
+      const item = chooseTarget();
+
+      // 1. 水平移動到中央
+      claw.classList.add("behind");
+      claw.style.left = "50%";
+      claw.style.marginLeft = "-43px";
+      await wait(850);
+
+      // 2. 在扭蛋堆後方向下移動
+      message.textContent = "爪子正在扭蛋後方下降…";
+      claw.classList.add("drop");
+      await wait(850);
+
+      // 3. 閉合爪子
+      claw.classList.add("closed");
+      await wait(350);
+
+      // 4. 顯示夾住的扭蛋，爪子移到前方開始上升
+      caughtBall.style.background = randomCapsuleColor();
+      caughtBall.classList.add("visible");
+      claw.classList.remove("behind");
+      claw.classList.add("holding");
+      await wait(180);
+
+      claw.classList.remove("drop");
+      claw.classList.add("returning");
+      message.textContent = "成功夾起扭蛋，正在返回原位…";
+      await wait(1100);
+
+      // 5. 水平返回原位
+      claw.style.left = "8%";
+      claw.style.marginLeft = "0";
+      await wait(850);
+
+      // 6. 公布結果
+      caughtBall.classList.remove("visible");
+      await wait(220);
+
+      resultEmoji.textContent = item.emoji;
+      resultName.textContent = item.name;
+
+      const isNew = !collected.has(item.id);
+      if (isNew) {
+        collected.add(item.id);
+        const slot = document.getElementById("slot-" + item.id);
+        if (slot) slot.classList.add("active");
+        message.textContent = "獲得新扭蛋：" + item.name + "！";
+      } else {
+        message.textContent = "又夾到 " + item.name + "，再接再厲！";
+      }
+
+      updateProgress();
+      resultCard.classList.add("show");
+      waitingForResultClose = true;
+      isPlaying = false;
+    }
+
+    function closeResult() {
+      if (!waitingForResultClose) return;
+
+      resultCard.classList.remove("show");
+      waitingForResultClose = false;
+
+      claw.classList.remove("closed", "returning", "holding", "behind");
+      caughtBall.classList.remove("visible");
+      claw.style.left = "8%";
+      claw.style.marginLeft = "0";
+
+      resetBtn.disabled = false;
+
+      if (collected.size === targets.length) {
+        playBtn.disabled = true;
+        message.textContent = "這一局的 10 種扭蛋都夾到了！";
+        if (winAnimals) winAnimals.textContent = targets.map((t) => t.emoji).join(" ");
+        setTimeout(() => winOverlay.classList.add("show"), 350);
+      } else {
+        playBtn.disabled = false;
+        message.textContent = "繼續按下按鈕，收集剩下的扭蛋！";
+      }
+    }
+
+    // 開新的一局：重新抽 10 種、重新洗扭蛋堆。
+    function newRound() {
+      collected.clear();
+      isPlaying = false;
+      waitingForResultClose = false;
+
+      targets = pickTargets();
+      buildAnimalGrid();
+      buildCapsulePile();
+
+      claw.classList.remove("drop", "closed", "returning", "holding", "behind");
+      claw.style.left = "8%";
+      claw.style.marginLeft = "0";
+      caughtBall.classList.remove("visible");
+      resultCard.classList.remove("show");
+      winOverlay.classList.remove("show");
+
+      playBtn.disabled = false;
+      resetBtn.disabled = false;
+      message.textContent = "按下按鈕，夾滿這局的 10 種扭蛋！";
+      updateProgress();
+      requestAnimationFrame(fitGameToViewport);
+    }
+
+    function fitGameToViewport() {
+      const shell = document.querySelector(".game-shell");
+      shell.style.setProperty("--fit-scale", "1");
+
+      const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth;
+      const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      const safeWidth = Math.max(280, vw - 12);
+      const safeHeight = Math.max(420, vh - 12);
+
+      const scale = Math.min(
+        1,
+        safeWidth / shell.offsetWidth,
+        safeHeight / shell.offsetHeight
+      );
+      shell.style.setProperty("--fit-scale", scale.toFixed(4));
+    }
+
+    window.addEventListener("resize", fitGameToViewport);
+    window.addEventListener("orientationchange", () => setTimeout(fitGameToViewport, 150));
+    window.addEventListener("load", fitGameToViewport);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", fitGameToViewport);
+    }
+
+    playBtn.addEventListener("click", playClaw);
+    resetBtn.addEventListener("click", newRound);
+    resultCard.addEventListener("click", closeResult);
+    playAgainBtn.addEventListener("click", newRound);
+
+    // 初始化第一局
+    newRound();
+  </script>
+<script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
