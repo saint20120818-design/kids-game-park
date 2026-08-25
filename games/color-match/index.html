@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#8fd8ef">
+<title>企鵝冰棒配對</title>
+<style>
+/* ============ 禁止縮放 / 貼合螢幕 ============ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;                 /* 關閉雙指縮放、雙擊縮放、下拉刷新 */
+  -webkit-text-size-adjust: 100%;     /* 關閉 iOS 橫置時自動放大字體 */
+  text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  background: #7ecbe8;
+}
+
+#app {
+  position: fixed;                    /* 固定滿版，不受網址列高度變化影響 */
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  font-family: "Baloo 2", "PingFang TC", "Noto Sans TC",
+               system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+/* ============ 尺寸單位（依螢幕自動縮放） ============ */
+:root {
+  --pen-w:  min(21.5vw, 15.5vh);      /* 企鵝寬 */
+  --pop-w:  min(13vw, 10.5vh);        /* 冰棒寬 */
+  --ui:     min(4.2vw, 2.6vh);        /* 介面字級 */
+  --snow:   #f2fbff;
+  --cream:  #fff8ec;
+  --ink:    #22303e;
+  --beak:   #f7a11a;
+}
+
+/* ============ 背景 ============ */
+#bg { position: absolute; inset: 0; z-index: 0; }
+#bg svg { width: 100%; height: 100%; display: block; }
+
+/* ============ 頂部列 ============ */
+header {
+  position: relative; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 2vw;
+  padding: 1.6vh 4vw 0.6vh;
+  font-size: var(--ui);
+  font-weight: 800;
+  color: #1d4a5e;
+  text-shadow: 0 2px 0 rgba(255,255,255,.75);
+}
+.badge {
+  background: rgba(255,255,255,.82);
+  border-radius: 999px;
+  padding: .55em 1.05em;
+  box-shadow: 0 2px 0 rgba(31,90,113,.22);
+  display: flex; align-items: center; gap: .4em;
+  white-space: nowrap;
+}
+#stars { letter-spacing: .06em; }
+
+.hint {
+  position: relative; z-index: 3;
+  text-align: center;
+  font-size: calc(var(--ui) * 1.02);
+  font-weight: 800;
+  color: #17566e;
+  text-shadow: 0 2px 0 rgba(255,255,255,.8);
+  padding: .3vh 4vw;
+  min-height: 1.4em;
+}
+
+/* ============ 冰棒區 ============ */
+#tray {
+  position: relative; z-index: 3;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4.5vw;
+  padding: 0 3vw;
+}
+
+.slot {
+  width: var(--pop-w);
+  aspect-ratio: 60 / 148;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.pop {
+  position: absolute; inset: 0;
+  cursor: grab;
+  touch-action: none;
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .2s;
+  filter: drop-shadow(0 .5vh .6vh rgba(20,60,80,.28));
+  animation: bob 2.4s ease-in-out infinite;
+}
+.pop svg { width: 100%; height: 100%; display: block; pointer-events: none; }
+.pop.dragging { transition: none; z-index: 40; animation: none; cursor: grabbing; }
+.pop.picked   { animation: none; transform: scale(1.12) translateY(-4%); }
+.pop.eaten    { opacity: 0; transform: scale(.3); pointer-events: none; }
+.pop.reject   { animation: reject .42s ease; }
+
+@keyframes bob   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6%)} }
+@keyframes reject{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9%) rotate(-7deg)}
+                   50%{transform:translateX(9%) rotate(7deg)} 78%{transform:translateX(-5%)} }
+
+/* ============ 企鵝區 ============ */
+#crowd {
+  position: relative; z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3.2vw;
+  padding: 0 2.5vw;
+  padding-bottom: max(2.2vh, env(safe-area-inset-bottom));
+}
+
+.pen {
+  width: var(--pen-w);
+  aspect-ratio: 120 / 132;
+  position: relative;
+  flex: 0 0 auto;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+  filter: drop-shadow(0 .6vh .5vh rgba(20,60,80,.22));
+}
+.pen svg { width: 100%; height: 100%; display: block; pointer-events: none; }
+.pen .wing { transform-origin: 60px 62px; transition: transform .2s; }
+.pen .eye-open  { opacity: 1; }
+.pen .eye-happy { opacity: 0; }
+
+.pen.hover  { transform: scale(1.08) translateY(-3%); }
+.pen.happy  { animation: hop .55s ease; }
+.pen.happy .eye-open  { opacity: 0; }
+.pen.happy .eye-happy { opacity: 1; }
+.pen.happy .wing { transform: rotate(-22deg); }
+.pen.happy .wing.r { transform: rotate(22deg); }
+.pen.nope   { animation: nope .45s ease; }
+.pen.full   { opacity: .95; }
+
+@keyframes hop  { 0%,100%{transform:translateY(0)} 35%{transform:translateY(-16%) scale(1.06)} 70%{transform:translateY(0) scale(.97)} }
+@keyframes nope { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7%) rotate(-5deg)} 60%{transform:translateX(7%) rotate(5deg)} }
+
+/* 企鵝頭上的泡泡 */
+.bubble {
+  position: absolute;
+  top: -18%; left: 50%;
+  transform: translate(-50%, 6px) scale(.4);
+  font-size: calc(var(--pen-w) * .34);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+}
+.bubble.show { opacity: 1; transform: translate(-50%, -8%) scale(1); }
+
+/* 吃到的冰棒收藏標記 */
+.tag {
+  position: absolute;
+  bottom: -6%; left: 50%;
+  transform: translateX(-50%);
+  width: 46%; height: 12%;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  display: flex; align-items: center; justify-content: center;
+  gap: 8%;
+  opacity: 0; transition: opacity .3s;
+}
+.tag.show { opacity: 1; }
+.tag i { width: 26%; aspect-ratio: 1; border-radius: 999px; display: block; }
+
+/* ============ 提示手指 ============ */
+#finger {
+  position: absolute; z-index: 35;
+  width: calc(var(--pop-w) * .78);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .4s;
+}
+#finger.show { opacity: .95; animation: tapping 1.5s ease-in-out infinite; }
+@keyframes tapping { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-6%,-14%)} }
+
+/* ============ 過關畫面 ============ */
+#flash {
+  position: absolute; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(12,60,80,.32);
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s;
+  backdrop-filter: blur(2px);
+}
+#flash.show { opacity: 1; }
+#flash .card {
+  background: #fff;
+  border-radius: 6vw;
+  padding: 4vh 9vw;
+  text-align: center;
+  color: #17566e;
+  box-shadow: 0 1.2vh 0 rgba(20,80,100,.25);
+  transform: scale(.7);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+#flash.show .card { transform: scale(1); }
+#flash h2 { font-size: calc(var(--ui) * 2.1); margin-bottom: .4em; }
+#flash p  { font-size: calc(var(--ui) * 1.05); font-weight: 700; opacity: .8; }
+#restart {
+  margin-top: 2.4vh;
+  font: inherit;
+  font-size: calc(var(--ui) * 1.15);
+  font-weight: 800;
+  color: #fff;
+  background: #ff9a4d;
+  border: none;
+  border-radius: 999px;
+  padding: .7em 2em;
+  box-shadow: 0 .6vh 0 #d9701f;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#restart:active { transform: translateY(.3vh); box-shadow: 0 .3vh 0 #d9701f; }
+
+/* 彩帶 */
+.confetti {
+  position: absolute; z-index: 55;
+  width: 2.2vw; height: 3.4vw;
+  border-radius: 30%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop, .pen, .bubble, #finger { animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 背景 -->
+  <div id="bg">
+    <svg viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stop-color="#7ec8e8"/>
+          <stop offset="55%" stop-color="#a8e0ef"/>
+          <stop offset="100%" stop-color="#dff4fa"/>
+        </linearGradient>
+        <radialGradient id="sun">
+          <stop offset="0%"   stop-color="#fdf9c8" stop-opacity=".95"/>
+          <stop offset="100%" stop-color="#fdf9c8" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="400" height="700" fill="url(#sky)"/>
+      <circle cx="205" cy="95" r="130" fill="url(#sun)"/>
+      <circle cx="205" cy="95" r="52" fill="#fbf6bd" opacity=".85"/>
+      <!-- 遠山 -->
+      <path d="M-20 430 L70 250 L150 430 Z"  fill="#7fbcd2" opacity=".55"/>
+      <path d="M110 440 L215 215 L320 440 Z" fill="#7fbcd2" opacity=".6"/>
+      <path d="M270 440 L360 260 L440 440 Z" fill="#7fbcd2" opacity=".5"/>
+      <path d="M185 250 L215 215 L245 250 L228 258 L215 246 L200 258 Z" fill="#eaf8fd" opacity=".9"/>
+      <!-- 雪地 -->
+      <path d="M-20 470 Q90 430 200 462 Q310 492 420 452 L420 700 L-20 700 Z" fill="#f4fcff"/>
+      <path d="M-20 520 Q120 486 240 512 Q340 534 420 508 L420 700 L-20 700 Z" fill="#ffffff" opacity=".85"/>
+      <!-- 樹 -->
+      <g fill="#4fb36b">
+        <path d="M40 470 L14 470 L40 400 L66 470 Z"/>
+        <path d="M40 430 L20 430 L40 372 L60 430 Z"/>
+        <path d="M362 480 L332 480 L362 402 L392 480 Z"/>
+        <path d="M362 436 L342 436 L362 376 L382 436 Z"/>
+      </g>
+      <g fill="#3f9d5c">
+        <path d="M118 500 L100 500 L118 452 L136 500 Z"/>
+        <path d="M292 496 L274 496 L292 450 L310 496 Z"/>
+      </g>
+    </svg>
+  </div>
+
+  <header>
+    <div class="badge">第 <span id="lvNum">1</span> / <span id="lvTotal">10</span> 關</div>
+    <div class="badge"><span id="stars">⭐ 0</span></div>
+  </header>
+
+  <div class="hint" id="hint">把冰棒拿給同顏色的企鵝</div>
+
+  <div id="tray"></div>
+  <div id="crowd"></div>
+
+  <!-- 提示手指 -->
+  <svg id="finger" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22 74 C10 68 8 52 12 42 L14 30 C14 25 22 25 22 30 L22 40 L22 16
+             C22 10 31 10 31 16 L31 38 L31 20 C31 14 40 14 40 20 L40 40 L40 26
+             C40 21 48 21 48 26 L48 52 C48 66 40 74 34 76 Z"
+          fill="#ffd9c2" stroke="#3a2a24" stroke-width="3" stroke-linejoin="round"/>
+  </svg>
+
+  <div id="flash"><div class="card">
+    <h2 id="flashTitle">太棒了！</h2>
+    <p id="flashSub">下一關準備好了</p>
+    <button id="restart" hidden>再玩一次</button>
+  </div></div>
+</div>
+
+<script>
+/* ================= 防縮放 ================= */
+document.addEventListener('gesturestart',  e => e.preventDefault());
+document.addEventListener('gesturechange', e => e.preventDefault());
+document.addEventListener('gestureend',    e => e.preventDefault());
+document.addEventListener('dblclick',      e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('contextmenu',   e => e.preventDefault());
+// iOS 雙擊縮放的最後一道防線
+let lastTouch = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTouch < 320) e.preventDefault();
+  lastTouch = now;
+}, { passive: false });
+
+/* ================= 顏色 ================= */
+/* 全部採用彼此可分辨的顏色；水藍/寶藍、黃綠、珊瑚等相近色已移除 */
+const PALETTE = [
+  { id:'red',    body:'#ef5350', dark:'#c62828', name:'紅色' },
+  { id:'blue',   body:'#4fc3f7', dark:'#0288d1', name:'藍色' },
+  { id:'yellow', body:'#ffca28', dark:'#f9a825', name:'黃色' },
+  { id:'green',  body:'#66bb6a', dark:'#2e7d32', name:'綠色' },
+  { id:'purple', body:'#ab8ce0', dark:'#6a4bab', name:'紫色' },
+  { id:'orange', body:'#ff9a4d', dark:'#e2661a', name:'橘色' },
+  { id:'pink',   body:'#f78bb5', dark:'#d64e86', name:'粉紅色' },
+  { id:'brown',  body:'#a1724f', dark:'#755033', name:'咖啡色' },
+  { id:'grey',   body:'#4a5568', dark:'#2d3748', name:'灰色'   }
+];
+
+/* 同一關內任兩色的視覺差異必須大於此值，否則重抽（避免黃/橘、紅/橘、紫/粉同時出現） */
+const MIN_COLOR_DIST = 150;
+
+const rgb = hex => [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+function colorDist(a, b) {                     // redmean 近似人眼感知差
+  const [r1,g1,b1] = rgb(a), [r2,g2,b2] = rgb(b);
+  const rm = (r1 + r2) / 2, dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+  return Math.sqrt((2 + rm/256) * dr*dr + 4 * dg*dg + (2 + (255-rm)/256) * db*db);
+}
+
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+/* ================= SVG ================= */
+function penguinSVG(c) {
+  return `<svg viewBox="0 0 120 132" xmlns="http://www.w3.org/2000/svg">
+    <ellipse class="wing l" cx="20" cy="74" rx="15" ry="29" fill="${c.body}" stroke="${c.dark}" stroke-width="2.5"/>
+    <ellipse class="wing r" cx="100" cy="74" rx="15" ry="29" fill="${c.body}" stroke="${c.dark}" stroke-width="2.5"/>
+    <ellipse cx="45" cy="124" rx="13" ry="7" fill="${c.dark==='#f9a825'?'#ef8c00':'#f7a11a'}"/>
+    <ellipse cx="75" cy="124" rx="13" ry="7" fill="${c.dark==='#f9a825'?'#ef8c00':'#f7a11a'}"/>
+    <ellipse cx="60" cy="68" rx="42" ry="52" fill="${c.body}" stroke="${c.dark}" stroke-width="2.5"/>
+    <ellipse cx="60" cy="76" rx="29" ry="42" fill="#fff8ec"/>
+    <g class="eye-open">
+      <circle cx="47" cy="60" r="7.5" fill="#22303e"/>
+      <circle cx="73" cy="60" r="7.5" fill="#22303e"/>
+      <circle cx="49.5" cy="57" r="2.6" fill="#fff"/>
+      <circle cx="75.5" cy="57" r="2.6" fill="#fff"/>
+    </g>
+    <g class="eye-happy" fill="none" stroke="#22303e" stroke-width="4" stroke-linecap="round">
+      <path d="M40 62 Q47 53 54 62"/>
+      <path d="M66 62 Q73 53 80 62"/>
+    </g>
+    <path d="M60 70 l9.5 8 -9.5 6.5 -9.5 -6.5 z" fill="#f7a11a" stroke="#d8820c" stroke-width="1.6" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+function popsicleSVG(c) {
+  return `<svg viewBox="0 0 60 148" xmlns="http://www.w3.org/2000/svg">
+    <rect x="24" y="92" width="12" height="54" rx="6" fill="#e6b877" stroke="#c8975a" stroke-width="2"/>
+    <rect x="3" y="4" width="54" height="98" rx="26" fill="${c.body}" stroke="${c.dark}" stroke-width="3"/>
+    <rect x="12" y="16" width="9" height="42" rx="4.5" fill="#fff" opacity=".38"/>
+  </svg>`;
+}
+
+/* ================= 音效 ================= */
+let ac = null;
+function beep(freq, dur = .12, type = 'sine', vol = .16) {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g).connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+  } catch (e) {}
+}
+const sndGood = () => { beep(660, .1); setTimeout(() => beep(880, .14), 90); };
+const sndBad  = () => beep(180, .18, 'square', .12);
+const sndWin  = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, .16, 'triangle'), i * 110));
+
+/* ================= 遊戲狀態 ================= */
+const tray = document.getElementById('tray');
+const crowd = document.getElementById('crowd');
+const hintEl = document.getElementById('hint');
+const finger = document.getElementById('finger');
+const flash = document.getElementById('flash');
+
+/* 共 10 關；每關的企鵝數量 */
+const LEVEL_PLAN = [3, 3, 3, 4, 4, 4, 5, 5, 5, 5];
+const TOTAL_LEVELS = LEVEL_PLAN.length;
+
+let level = 1, stars = 0, remaining = 0, locked = false;
+let picked = null, idleTimer = null;
+
+/* 貪婪挑色：只收下與已選顏色差異足夠大的顏色 */
+function levelColors(count) {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const pool = shuffle(PALETTE), picked = [];
+    for (const c of pool) {
+      if (picked.every(p => colorDist(p.body, c.body) >= MIN_COLOR_DIST)) picked.push(c);
+      if (picked.length === count) return picked;
+    }
+  }
+  return shuffle(PALETTE).slice(0, count);   // 理論上不會走到這
+}
+
+function applyScale(count) {                 // 企鵝變多時自動縮小，永遠塞得下一行
+  const pen = { 3: 'min(22vw, 15.5vh)', 4: 'min(19vw, 14vh)', 5: 'min(16vw, 12.5vh)' }[count];
+  const pop = { 3: 'min(13vw, 10.5vh)',  4: 'min(11.5vw, 9.5vh)', 5: 'min(10vw, 8.5vh)' }[count];
+  document.documentElement.style.setProperty('--pen-w', pen);
+  document.documentElement.style.setProperty('--pop-w', pop);
+}
+
+function buildLevel() {
+  locked = false; picked = null;
+  const count = LEVEL_PLAN[level - 1];
+  applyScale(count);
+  const colors = levelColors(count);
+  remaining = colors.length;
+  document.getElementById('lvNum').textContent = level;
+  tray.innerHTML = ''; crowd.innerHTML = '';
+
+  // 企鵝
+  shuffle(colors).forEach(c => {
+    const pen = document.createElement('div');
+    pen.className = 'pen';
+    pen.dataset.color = c.id;
+    pen.innerHTML = penguinSVG(c) +
+      `<div class="bubble"></div>` +
+      `<div class="tag"><i style="background:${c.body}"></i></div>`;
+    pen.addEventListener('pointerup', () => { if (picked) deliver(picked, pen); });
+    crowd.appendChild(pen);
+  });
+
+  // 冰棒
+  shuffle(colors).forEach(c => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    const pop = document.createElement('div');
+    pop.className = 'pop';
+    pop.dataset.color = c.id;
+    pop.dataset.name = c.name;
+    pop.innerHTML = popsicleSVG(c);
+    pop.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
+    attachDrag(pop);
+    slot.appendChild(pop);
+    tray.appendChild(slot);
+  });
+
+  hintEl.textContent = '把冰棒拿給同顏色的企鵝';
+  scheduleHint();
+}
+
+/* ================= 拖曳 ================= */
+function attachDrag(pop) {
+  let sx = 0, sy = 0, moved = false, active = false;
+
+  pop.addEventListener('pointerdown', e => {
+    if (locked || pop.classList.contains('eaten')) return;
+    e.preventDefault();
+    hideFinger();
+    active = true; moved = false;
+    sx = e.clientX; sy = e.clientY;
+    pop.setPointerCapture(e.pointerId);
+    pop.classList.add('dragging');
+    select(pop);
+  });
+
+  pop.addEventListener('pointermove', e => {
+    if (!active) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+    pop.style.transform = `translate(${dx}px, ${dy}px) scale(1.14) rotate(${dx * 0.04}deg)`;
+    highlight(e.clientX, e.clientY);
+  });
+
+  pop.addEventListener('pointerup', e => {
+    if (!active) return;
+    active = false;
+    pop.classList.remove('dragging');
+    clearHighlight();
+    const target = penguinAt(e.clientX, e.clientY);
+    if (moved) {
+      pop.style.transform = '';
+      if (target) deliver(pop, target);
+      else { pop.classList.remove('picked'); picked = null; }
+    } else {
+      pop.style.transform = '';   // 單擊 = 選取，之後再點企鵝
+      hintEl.textContent = `選好了 ${pop.dataset.name} 冰棒，點企鵝餵牠`;
+    }
+  });
+
+  pop.addEventListener('pointercancel', () => {
+    active = false;
+    pop.classList.remove('dragging', 'picked');
+    pop.style.transform = ''; picked = null; clearHighlight();
+  });
+}
+
+function select(pop) {
+  document.querySelectorAll('.pop.picked').forEach(p => p.classList.remove('picked'));
+  pop.classList.add('picked');
+  picked = pop;
+}
+
+function penguinAt(x, y) {
+  let best = null, bestD = Infinity;
+  document.querySelectorAll('.pen').forEach(pen => {
+    const r = pen.getBoundingClientRect();
+    const pad = r.width * 0.35;
+    if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) {
+      const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+      if (d < bestD) { bestD = d; best = pen; }
+    }
+  });
+  return best;
+}
+
+function highlight(x, y) {
+  const t = penguinAt(x, y);
+  document.querySelectorAll('.pen').forEach(p => p.classList.toggle('hover', p === t));
+}
+const clearHighlight = () => document.querySelectorAll('.pen').forEach(p => p.classList.remove('hover'));
+
+/* ================= 配對判定 ================= */
+function deliver(pop, pen) {
+  if (locked || pop.classList.contains('eaten')) return;
+  const bubble = pen.querySelector('.bubble');
+
+  if (pen.dataset.color === pop.dataset.color && !pen.classList.contains('full')) {
+    // 正確
+    const pr = pop.getBoundingClientRect(), nr = pen.getBoundingClientRect();
+    pop.style.transition = 'transform .3s ease-in, opacity .3s .1s';
+    pop.style.transform =
+      `translate(${nr.left + nr.width / 2 - pr.left - pr.width / 2}px,
+                 ${nr.top + nr.height * 0.55 - pr.top - pr.height / 2}px) scale(.35)`;
+    setTimeout(() => { pop.classList.add('eaten'); pop.style.transition = ''; }, 300);
+
+    pen.classList.add('full');
+    setTimeout(() => {
+      pen.classList.add('happy');
+      pen.querySelector('.tag').classList.add('show');
+      bubble.textContent = '❤️'; bubble.classList.add('show');
+      setTimeout(() => { pen.classList.remove('happy'); bubble.classList.remove('show'); }, 900);
+    }, 280);
+
+    sndGood();
+    stars++; document.getElementById('stars').textContent = '⭐ ' + stars;
+    hintEl.textContent = '配對成功！';
+    picked = null; remaining--;
+    if (remaining === 0) setTimeout(nextLevel, 700);
+  } else {
+    // 錯誤
+    pop.classList.remove('picked');
+    pop.classList.add('reject');
+    setTimeout(() => pop.classList.remove('reject'), 430);
+    pen.classList.add('nope');
+    setTimeout(() => pen.classList.remove('nope'), 460);
+    bubble.textContent = '❓'; bubble.classList.add('show');
+    setTimeout(() => bubble.classList.remove('show'), 800);
+    sndBad();
+    hintEl.textContent = '顏色不一樣，再試試看';
+    picked = null;
+  }
+  scheduleHint();
+}
+
+/* ================= 過關 ================= */
+function nextLevel() {
+  locked = true;
+  sndWin();
+  confetti();
+  const restart = document.getElementById('restart');
+
+  if (level >= TOTAL_LEVELS) {                    // 破關
+    setTimeout(confetti, 600);
+    document.getElementById('flashTitle').textContent = '全部完成！🎉';
+    document.getElementById('flashSub').textContent = `${TOTAL_LEVELS} 關全破，得到 ⭐ ${stars}`;
+    restart.hidden = false;
+    flash.classList.add('show');
+    return;
+  }
+
+  restart.hidden = true;
+  document.getElementById('flashTitle').textContent = ['太棒了！', '好厲害！', '全部配對完成！'][(level - 1) % 3];
+  document.getElementById('flashSub').textContent = `第 ${level} / ${TOTAL_LEVELS} 關通過 ⭐ ${stars}`;
+  flash.classList.add('show');
+  setTimeout(() => {
+    flash.classList.remove('show');
+    level++;
+    buildLevel();
+  }, 1500);
+}
+
+function restartGame() {
+  document.getElementById('restart').hidden = true;
+  flash.classList.remove('show');
+  level = 1; stars = 0;
+  document.getElementById('stars').textContent = '⭐ 0';
+  buildLevel();
+}
+
+function confetti() {
+  const cols = ['#ef5350', '#4fc3f7', '#ffca28', '#66bb6a', '#ab8ce0', '#ff9a4d'];
+  for (let i = 0; i < 34; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.background = cols[(Math.random() * cols.length) | 0];
+    el.style.left = (Math.random() * 100) + 'vw';
+    el.style.top = '-6vh';
+    document.getElementById('app').appendChild(el);
+    const dx = (Math.random() * 60 - 30), dur = 1400 + Math.random() * 900;
+    el.animate(
+      [{ transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+       { transform: `translate(${dx}vw, 112vh) rotate(${720 + Math.random() * 360}deg)`, opacity: .9 }],
+      { duration: dur, easing: 'cubic-bezier(.3,.5,.6,1)' }
+    ).onfinish = () => el.remove();
+  }
+}
+
+/* ================= 閒置提示 ================= */
+function scheduleHint() {
+  clearTimeout(idleTimer);
+  hideFinger();
+  idleTimer = setTimeout(showFinger, 5000);
+}
+function showFinger() {
+  const pop = document.querySelector('.pop:not(.eaten)');
+  if (!pop || locked) return;
+  const r = pop.getBoundingClientRect();
+  finger.style.left = (r.left + r.width * 0.55) + 'px';
+  finger.style.top  = (r.top + r.height * 0.42) + 'px';
+  finger.classList.add('show');
+  hintEl.textContent = '拖曳冰棒，或先點冰棒再點企鵝';
+}
+const hideFinger = () => finger.classList.remove('show');
+
+/* ================= 啟動 ================= */
+document.getElementById('lvTotal').textContent = TOTAL_LEVELS;
+document.getElementById('restart').addEventListener('click', restartGame);
+window.addEventListener('resize', () => { hideFinger(); scheduleHint(); });
+window.addEventListener('orientationchange', () => setTimeout(() => window.scrollTo(0, 0), 100));
+buildLevel();
+</script>
+<script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
