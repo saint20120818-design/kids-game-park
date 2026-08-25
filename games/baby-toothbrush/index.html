@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#82dcef">
+  <title>動物寶寶刷牙小遊戲</title>
+  <style>
+    :root{--ink:#315168;--blue:#79d7ec;--cream:#fff9e9}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{font-family:Arial,"Noto Sans TC",sans-serif;color:var(--ink);background:#6bc9e2;user-select:none;-webkit-user-select:none;touch-action:none}
+    button{font:inherit;color:inherit}
+    .game{position:relative;width:100%;max-width:500px;height:100%;min-height:580px;margin:auto;overflow:hidden;background:linear-gradient(#83ddef 0 25%,#eaf9f5 25% 100%);box-shadow:0 0 45px #245a6c55}
+    .tiles{position:absolute;inset:25% 0 0;opacity:.35;background-image:linear-gradient(#72bdc8 2px,transparent 2px),linear-gradient(90deg,#72bdc8 2px,transparent 2px);background-size:72px 72px}
+    header{position:relative;z-index:6;padding:calc(13px + env(safe-area-inset-top)) 17px 0;color:white;text-align:center;text-shadow:0 2px 0 #288ca5}
+    .top{display:flex;align-items:center;justify-content:space-between}.title{font-size:clamp(23px,6vw,30px);font-weight:1000}.badge{display:grid;place-items:center;width:43px;height:43px;border-radius:14px;background:white;color:#4cbad4;font-size:25px;text-shadow:none;box-shadow:0 5px 0 #3198b2;transform:rotate(-5deg)}
+    .restart{width:43px;height:43px;border:0;border-radius:50%;background:#ffffffe8;color:#388da4;font-size:23px;font-weight:1000;box-shadow:0 5px 0 #3194aa;cursor:pointer}
+    .level-status{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:99px;background:#368fa866;font-size:12px;font-weight:1000}.hint{display:block;width:max-content;max-width:94%;margin:7px auto 0;padding:8px 16px;border-radius:18px;background:#fffdf4;color:#36576a;font-size:15px;font-weight:900;text-shadow:none;box-shadow:0 5px 0 #b9d7d5;transition:.2s}.hint.good{color:#297946;background:#e1f8d9}
+    .progress-box{position:relative;z-index:5;width:min(330px,80%);height:18px;margin:12px auto 0;padding:4px;border-radius:99px;background:white;box-shadow:0 3px 0 #acd1d4}.progress{width:0;height:10px;border-radius:99px;background:linear-gradient(90deg,#ffd954,#ff8b72);transition:width .18s}.percent{position:absolute;right:-44px;top:-1px;width:40px;color:white;font-size:13px;font-weight:1000;text-shadow:0 2px #328ca2}
+    .stage{position:absolute;z-index:3;inset:174px 0 8px;touch-action:none}.baby{position:absolute;left:50%;bottom:5px;width:370px;height:405px;transform:translateX(-50%)}
+    .ears::before,.ears::after{content:"";position:absolute;top:125px;width:64px;height:82px;border:8px solid #e6a67d;border-radius:50%;background:#ffc8a2}.ears::before{left:7px}.ears::after{right:7px}
+    .head{position:absolute;left:28px;top:28px;width:314px;height:335px;border-radius:47% 47% 45% 45%;background:#ffd0aa;border:8px solid #e8a77d;box-shadow:inset 0 -18px #f3b68f,0 10px 0 #5caeb933}
+    .hair{position:absolute;left:70px;top:-21px;width:170px;height:70px}.hair i{position:absolute;width:82px;height:35px;border-radius:50%;border-top:14px solid #7a5037}.hair i:nth-child(1){left:10px;transform:rotate(-14deg)}.hair i:nth-child(2){right:3px;transform:rotate(17deg)}
+    .face-detail{position:absolute;z-index:1;inset:0;pointer-events:none}
+    .eye{position:absolute;top:108px;width:38px;height:48px;border-radius:50%;background:#344451;box-shadow:inset 9px 8px white}.eye.left{left:63px}.eye.right{right:63px}.cheek{position:absolute;top:167px;width:48px;height:22px;border-radius:50%;background:#f18f8b88}.cheek.left{left:34px}.cheek.right{right:34px}
+    .nose{position:absolute;left:50%;top:164px;width:20px;height:14px;border-radius:50%;background:#e69b7c;transform:translateX(-50%)}
+    .mouth{position:absolute;left:50%;top:198px;width:196px;height:110px;transform:translateX(-50%);border:7px solid #9f554c;border-radius:22px 22px 90px 90px;background:#7d3d40;overflow:hidden;transition:.4s}.mouth.clean{height:105px;border-radius:50%;background:#9c4b55;transform:translateX(-50%) scaleX(1.05)}
+    .teeth{position:absolute;left:8px;right:8px;top:5px;height:70px;display:grid;grid-template-columns:repeat(6,1fr);gap:2px}.tooth{position:relative;border-radius:5px 5px 13px 13px;background:#fffbe9;border:2px solid #d7e5df;overflow:visible;transition:background .35s,filter .35s}.tooth.clean{background:white;filter:drop-shadow(0 0 5px white)}
+    .stain{position:absolute;border-radius:50%;background:#a97845;box-shadow:inset 0 2px #6e4e31;pointer-events:none;transition:opacity .08s}.tongue{position:absolute;left:50%;bottom:-10px;width:110px;height:49px;border-radius:60% 60% 0 0;background:#ef858c;transform:translateX(-50%)}
+    .body{position:absolute;z-index:-1;left:67px;bottom:-20px;width:236px;height:112px;border-radius:90px 90px 0 0;background:#fff3a6;border:8px solid #e3bd59}.body::after{content:"★";position:absolute;left:50%;top:16px;transform:translateX(-50%);color:#f39b62;font-size:52px}
+    .game[data-animal="rabbit"] .head{background:#fff8f2;border-color:#d9c6bd;box-shadow:inset 0 -18px #f1dfd6,0 10px 0 #5caeb933}.game[data-animal="rabbit"] .ears::before,.game[data-animal="rabbit"] .ears::after{top:22px;width:62px;height:164px;background:linear-gradient(90deg,#fff7f1 25%,#f7b9bd 26% 74%,#fff7f1 75%);border-color:#d9c6bd}.game[data-animal="rabbit"] .hair{display:none}.game[data-animal="rabbit"] .face-detail::before{content:"";position:absolute;left:119px;top:151px;width:41px;height:36px;border-radius:50%;background:#fff;box-shadow:34px 0 #fff}.game[data-animal="rabbit"] .nose{z-index:2;background:#e8838e;width:18px;height:13px}
+    .game[data-animal="cat"] .head{background:#ffc98d;border-color:#d58d54;box-shadow:inset 0 -18px #edac72,0 10px 0 #5caeb933}.game[data-animal="cat"] .ears::before,.game[data-animal="cat"] .ears::after{top:63px;width:88px;height:103px;border-radius:13px;background:linear-gradient(135deg,#f49c78 0 45%,#ffc98d 46%);border-color:#d58d54;clip-path:polygon(50% 0,100% 100%,0 100%)}.game[data-animal="cat"] .hair{display:none}.game[data-animal="cat"] .face-detail::before{content:"";position:absolute;left:118px;top:21px;width:12px;height:47px;border-radius:9px;background:#b87346;box-shadow:30px -4px #b87346,60px 0 #b87346}.game[data-animal="cat"] .face-detail::after{content:"≡                         ≡";position:absolute;left:16px;top:144px;width:280px;color:#8b5a3c;font-size:31px;font-weight:900;letter-spacing:-3px;white-space:pre}.game[data-animal="cat"] .nose{z-index:2;background:#d66f78}
+    .game[data-animal="panda"] .head{background:#fff;border-color:#4b555e;box-shadow:inset 0 -18px #e4e8e8,0 10px 0 #5caeb933}.game[data-animal="panda"] .ears::before,.game[data-animal="panda"] .ears::after{top:76px;width:78px;height:91px;background:#343d45;border-color:#293138}.game[data-animal="panda"] .eye{z-index:2;box-shadow:0 0 0 16px #3b444c,inset 9px 8px white}.game[data-animal="panda"] .hair{display:none}.game[data-animal="panda"] .face-detail::before{content:"";position:absolute;left:117px;top:148px;width:43px;height:38px;border-radius:50%;background:#edf0ef;box-shadow:36px 0 #edf0ef}.game[data-animal="panda"] .nose{z-index:2;background:#343d45;width:24px;height:17px}
+    .game[data-animal="lion"] .head{background:#ffc971;border:14px solid #a96831;box-shadow:0 0 0 19px #d99142,0 10px 0 #5caeb933}.game[data-animal="lion"] .ears::before,.game[data-animal="lion"] .ears::after{top:91px;width:73px;height:80px;background:#ffc971;border-color:#a96831}.game[data-animal="lion"] .hair{display:none}.game[data-animal="lion"] .face-detail::before{content:"";position:absolute;left:112px;top:145px;width:49px;height:43px;border-radius:50%;background:#ffe2a2;box-shadow:39px 0 #ffe2a2}.game[data-animal="lion"] .face-detail::after{content:"⌄";position:absolute;left:132px;top:3px;color:#a96831;font-size:69px;font-weight:1000;transform:scaleX(1.5)}.game[data-animal="lion"] .nose{z-index:2;background:#835139;width:24px;height:17px}
+    .baby.happy{animation:happyHop .48s ease-in-out 2 alternate}.baby.happy .eye{top:118px;width:50px;height:25px;border-radius:50%;background:transparent;box-shadow:none;border-bottom:8px solid #344451}.baby.happy .eye.left{left:58px}.baby.happy .eye.right{right:58px}.baby.happy .cheek{background:#f17f82aa;transform:scale(1.15)}.baby.happy .mouth{top:207px;height:105px;border-radius:28px 28px 95px 95px;transform:translateX(-50%) scaleX(1.08);box-shadow:0 7px 0 #e79b7d}.baby.happy .tongue{height:55px;bottom:-5px}
+    .brush{position:absolute;z-index:10;left:45px;bottom:20px;width:190px;height:64px;transform:rotate(-12deg);transform-origin:30px center;cursor:grab;touch-action:none;filter:drop-shadow(0 7px 2px #31536138)}.brush.dragging{cursor:grabbing}.handle{position:absolute;left:0;top:17px;width:150px;height:31px;border-radius:18px;background:#ff7f72;border:4px solid #d65f59;box-shadow:inset 0 7px #ffaba0}.handle::after{content:"";position:absolute;left:16px;top:7px;width:65px;height:7px;border-radius:8px;background:#fff7}.brush-head{position:absolute;right:0;top:6px;width:56px;height:45px;border-radius:11px;background:#f4ffff;border:4px solid #6bb8ce}.bristles{position:absolute;right:4px;top:-3px;display:flex;gap:2px}.bristles i{width:6px;height:29px;border-radius:5px;background:#68d5e6}.bristles i:nth-child(even){background:#ffdb62;height:25px}
+    .foam{position:absolute;z-index:12;border-radius:50%;background:#fffffff0;border:2px solid #70cce3;pointer-events:none;animation:foam .8s ease-out forwards}.sparkle{position:absolute;z-index:15;color:white;font-size:30px;text-shadow:0 0 7px #fff;pointer-events:none;animation:sparkle .8s ease-in-out infinite alternate}
+    .finish{position:absolute;z-index:25;inset:0;display:none;place-items:center;padding:25px;background:#4abbd4df;text-align:center}.finish.show{display:grid;animation:fade .35s}.card{width:100%;padding:27px 21px;border-radius:30px;background:#fffcef;box-shadow:0 11px 0 #23859d}.card .big{font-size:78px;animation:bounce .75s ease-in-out infinite alternate}.card h2{margin:5px 0;color:#278198;font-size:32px}.card p{margin:4px 0 19px;font-weight:800;color:#607483}.again{width:100%;min-height:56px;border:0;border-radius:18px;background:#ff806d;color:white;font-size:19px;font-weight:1000;box-shadow:0 7px 0 #ce5749;cursor:pointer}
+    @keyframes foam{to{opacity:0;transform:translateY(-25px) scale(1.5)}}@keyframes sparkle{to{transform:scale(1.4) rotate(20deg);opacity:.65}}@keyframes fade{from{opacity:0}}@keyframes bounce{to{transform:translateY(-10px) rotate(4deg)}}@keyframes happyHop{to{transform:translateX(-50%) translateY(-10px) rotate(1.5deg)}}
+    @media(max-height:680px){.stage{top:157px}.baby{scale:.82;transform-origin:bottom center;bottom:-2px}.progress-box{margin-top:6px}.hint{margin-top:5px}.level-status{margin-top:4px}.brush{bottom:7px}}
+    @media(max-width:390px){.baby{scale:.9;transform-origin:bottom center}.stage{inset-inline:-10px}.percent{right:-39px}.progress-box{width:74%}}
+  </style>
+</head>
+<body>
+  <main class="game" data-animal="baby">
+    <div class="tiles" aria-hidden="true"></div>
+    <header>
+      <div class="top"><div class="badge current-icon">🧒</div><div class="title">寶寶與動物刷牙</div><button class="restart" aria-label="重新本關">↻</button></div>
+      <div class="level-status">第 1 關・寶寶</div>
+      <div class="hint" role="status" aria-live="polite">幫寶寶把牙齒刷乾淨！</div>
+      <div class="progress-box" aria-label="清潔進度"><div class="progress"></div><span class="percent">0%</span></div>
+    </header>
+    <section class="stage" aria-label="刷牙遊戲區">
+      <div class="baby">
+        <div class="ears"></div><div class="body"></div>
+        <div class="head"><div class="face-detail"></div><div class="hair"><i></i><i></i></div><i class="eye left"></i><i class="eye right"></i><i class="cheek left"></i><i class="cheek right"></i><i class="nose"></i>
+          <div class="mouth"><div class="teeth"></div><div class="tongue"></div></div>
+        </div>
+      </div>
+      <div class="brush" role="button" aria-label="牙刷，拖曳來刷牙"><div class="handle"></div><div class="brush-head"><div class="bristles"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+    </section>
+    <section class="finish" aria-live="polite"><div class="card"><div class="big"><span class="finish-face">🧒</span>✨</div><h2>刷乾淨了！</h2><p>牙齒亮晶晶，寶寶笑得好開心！</p><button class="again">下一關</button></div></section>
+  </main>
+  <script>
+  (()=>{
+    'use strict';
+    const game=document.querySelector('.game'),stage=document.querySelector('.stage'),brush=document.querySelector('.brush'),teeth=document.querySelector('.teeth');
+    const progress=document.querySelector('.progress'),percent=document.querySelector('.percent'),hint=document.querySelector('.hint'),finish=document.querySelector('.finish');
+    let stains=[],dragging=false,done=false,currentLevel=0,currentAnimal='baby',offset={x:0,y:0},audioContext,lastFoam=0;
+    const animals={baby:{emoji:'🧒',name:'寶寶'},rabbit:{emoji:'🐰',name:'小兔子'},cat:{emoji:'🐱',name:'小貓'},panda:{emoji:'🐼',name:'熊貓'},lion:{emoji:'🦁',name:'小獅子'}},levels=['baby','rabbit','cat','panda','lion'];
+    function reset(){
+      dragging=false;done=false;stains=[];teeth.innerHTML='';finish.classList.remove('show');document.querySelector('.baby').classList.remove('happy');document.querySelector('.mouth').classList.remove('clean');document.querySelectorAll('.sparkle,.foam').forEach(x=>x.remove());
+      for(let i=0;i<6;i++){const tooth=document.createElement('div');tooth.className='tooth';teeth.append(tooth)}
+      for(let toothIndex=0;toothIndex<6;toothIndex++){
+        const count=1+Math.floor(Math.random()*3);
+        for(let i=0;i<count;i++){const size=8+Math.random()*9,el=document.createElement('i');el.className='stain';el.style.cssText=`width:${size}px;height:${Math.max(6,size*(.55+Math.random()*.2))}px;left:${5+Math.random()*48}%;top:${8+Math.random()*55}%;transform:rotate(${-30+Math.random()*60}deg);background:hsl(${25+Math.random()*13} 38% ${34+Math.random()*12}%)`;teeth.children[toothIndex].append(el);stains.push({el,value:1})}
+      }
+      brush.style.left='45px';brush.style.top='';brush.style.bottom='20px';setProgress();hint.textContent='拖曳牙刷，把牙齒上的小污漬刷掉！';hint.className='hint';
+    }
+    function tone(freq,start,duration,volume=.09){audioContext??=new(window.AudioContext||window.webkitAudioContext)();const o=audioContext.createOscillator(),g=audioContext.createGain(),now=audioContext.currentTime;o.frequency.setValueAtTime(freq,now+start);g.gain.setValueAtTime(volume,now+start);g.gain.exponentialRampToValueAtTime(.001,now+start+duration);o.connect(g).connect(audioContext.destination);o.start(now+start);o.stop(now+start+duration)}
+    function successSound(){tone(523,0,.13);tone(659,.12,.13);tone(784,.24,.2);tone(1047,.4,.35)}
+    function setProgress(){const clean=stains.length?stains.reduce((n,s)=>n+(1-s.value),0)/stains.length:0,p=Math.round(clean*100);progress.style.width=p+'%';percent.textContent=p+'%'}
+    function start(e){if(done)return;e.preventDefault();dragging=true;brush.classList.add('dragging');const r=brush.getBoundingClientRect();offset={x:e.clientX-r.left,y:e.clientY-r.top};brush.setPointerCapture?.(e.pointerId)}
+    function move(e){if(!dragging||done)return;e.preventDefault();const r=stage.getBoundingClientRect();let x=e.clientX-r.left-offset.x,y=e.clientY-r.top-offset.y;x=Math.max(-25,Math.min(r.width-135,x));y=Math.max(5,Math.min(r.height-58,y));brush.style.left=x+'px';brush.style.top=y+'px';brush.style.bottom='auto';cleanAt(e.clientX,e.clientY)}
+    function end(){dragging=false;brush.classList.remove('dragging')}
+    function cleanAt(x,y){
+      const head=brush.querySelector('.brush-head').getBoundingClientRect(),bx=head.left+head.width/2,by=head.top+head.height/2;let touched=false;
+      stains.forEach(s=>{if(s.value<=0)return;const r=s.el.getBoundingClientRect(),sx=r.left+r.width/2,sy=r.top+r.height/2;if(Math.hypot(bx-sx,by-sy)<38){s.value=Math.max(0,s.value-.075);s.el.style.opacity=s.value;touched=true;if(s.value===0)s.el.remove()}});
+      if(touched){if(Date.now()-lastFoam>80){makeFoam(x,y);lastFoam=Date.now()}setProgress();hint.textContent='刷刷刷～污漬快要不見了！';if(stains.every(s=>s.value<=0))complete()}
+    }
+    function makeFoam(x,y){const r=stage.getBoundingClientRect(),f=document.createElement('i');f.className='foam';const size=8+Math.random()*10;f.style.cssText=`width:${size}px;height:${size}px;left:${x-r.left+(Math.random()-.5)*25}px;top:${y-r.top+(Math.random()-.5)*20}px`;stage.append(f);setTimeout(()=>f.remove(),850)}
+    function complete(){
+      done=true;dragging=false;brush.classList.remove('dragging');progress.style.width='100%';percent.textContent='100%';hint.textContent=`太棒了！${animals[currentAnimal].name}笑得好開心！`;hint.className='hint good';document.querySelector('.baby').classList.add('happy');document.querySelector('.mouth').classList.add('clean');document.querySelectorAll('.tooth').forEach(t=>t.classList.add('clean'));
+      for(let i=0;i<9;i++){const s=document.createElement('b');s.className='sparkle';s.textContent='✦';s.style.left=90+Math.random()*200+'px';s.style.top=175+Math.random()*125+'px';s.style.animationDelay=Math.random()*.5+'s';stage.append(s)}
+      const last=currentLevel===levels.length-1;document.querySelector('.finish-face').textContent=animals[currentAnimal].emoji;finish.querySelector('h2').textContent=last?'五關都完成了！':`${animals[currentAnimal].name}刷乾淨了！`;finish.querySelector('p').textContent=last?'每一位的牙齒都亮晶晶！':'準備幫下一位刷牙囉！';document.querySelector('.again').textContent=last?'再玩一次':'下一關';successSound();setTimeout(()=>finish.classList.add('show'),1900)
+    }
+    function setupLevel(level){currentLevel=level;currentAnimal=levels[level];const animal=animals[currentAnimal];game.dataset.animal=currentAnimal;document.querySelector('.current-icon').textContent=animal.emoji;document.querySelector('.level-status').textContent=`第 ${level+1} 關・${animal.name}`;reset();hint.textContent=`幫${animal.name}把牙齒刷乾淨！`}
+    function nextLevel(){setupLevel(currentLevel===levels.length-1?0:currentLevel+1)}
+    brush.addEventListener('pointerdown',start);stage.addEventListener('pointermove',move);stage.addEventListener('pointerup',end);stage.addEventListener('pointercancel',end);
+    document.querySelector('.restart').addEventListener('click',()=>setupLevel(currentLevel));document.querySelector('.again').addEventListener('click',nextLevel);document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});setupLevel(0);
+  })();
+  </script>
+</body>
+</html>
+
