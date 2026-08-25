@@ -16,3 +16,5 @@
 
 開啟根目錄的 `index.html` 即可進入遊戲樂園。
 
+線上遊玩：<https://saint20120818-design.github.io/kids-game-park/>
+
