@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f2b134">
+<title>形狀配對</title>
+<style>
+/* ---------- 防縮放 / 滿版 ---------- */
+:root{--u:1;--vw:100vw;--vh:100vh}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+  height:100%;width:100%;
+  position:fixed;inset:0;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:none;
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+}
+body{
+  font-family:"Baloo 2","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  background:#1f1206;
+  color:#3b2510;
+}
+
+/* ---------- 版面 ---------- */
+#app{
+  position:fixed;left:0;top:0;
+  width:var(--vw,100vw);
+  height:var(--vh,100vh);
+  display:flex;flex-direction:column;
+  background:
+    radial-gradient(120% 70% at 50% 18%, #ffe9a8 0%, #ffd166 38%, #f7a72c 68%, #e07a1f 100%);
+  overflow:hidden;
+}
+#hud{
+  flex:0 0 auto;
+  padding:calc(var(--u)*14px) calc(var(--u)*18px) calc(var(--u)*6px);
+  padding-top:calc(var(--u)*14px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:calc(var(--u)*10px);
+}
+.stage-label{
+  font-size:calc(var(--u)*20px);font-weight:800;letter-spacing:.04em;
+  color:#8a3f10;text-shadow:0 calc(var(--u)*2px) 0 rgba(255,255,255,.5);
+  white-space:nowrap;
+}
+.dots{display:flex;gap:calc(var(--u)*7px);flex:1 1 auto}
+.dot{
+  width:calc(var(--u)*13px);height:calc(var(--u)*13px);border-radius:50%;
+  background:rgba(138,63,16,.22);
+  box-shadow:inset 0 calc(var(--u)*2px) calc(var(--u)*3px) rgba(0,0,0,.18);
+  transition:transform .25s cubic-bezier(.2,1.6,.4,1),background .25s;
+}
+.dot.on{background:#e94b3c;transform:scale(1.25)}
+.iconbtn{
+  width:calc(var(--u)*40px);height:calc(var(--u)*40px);border:0;border-radius:50%;
+  background:rgba(255,255,255,.55);color:#8a3f10;
+  font-size:calc(var(--u)*19px);line-height:1;
+  display:grid;place-items:center;cursor:pointer;
+  box-shadow:0 calc(var(--u)*3px) 0 rgba(138,63,16,.25);
+  touch-action:manipulation;
+}
+.iconbtn:active{transform:translateY(calc(var(--u)*2px));box-shadow:0 calc(var(--u)*1px) 0 rgba(138,63,16,.25)}
+
+#board{flex:1 1 auto;min-height:0;position:relative;display:block}
+#scene{width:100%;height:100%;display:block}
+
+#tray{
+  flex:0 0 auto;
+  position:relative;
+  padding:calc(var(--u)*12px) calc(var(--u)*12px) calc(var(--u)*12px);
+  padding-bottom:calc(var(--u)*12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,#a4552a 0%,#7d3d1d 100%);
+  border-top:calc(var(--u)*4px) solid #cf7a3d;
+  box-shadow:0 calc(var(--u)*-8px) calc(var(--u)*18px) rgba(0,0,0,.25);
+}
+#tray::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:calc(var(--u)*10px);
+  background:repeating-linear-gradient(90deg,#e8b04b 0 calc(var(--u)*16px),#d9603f calc(var(--u)*16px) calc(var(--u)*32px));
+  opacity:.85;
+}
+#pieces{
+  display:flex;flex-wrap:wrap;justify-content:center;align-content:center;
+  gap:calc(var(--u)*8px);
+  min-height:calc(var(--u)*76px);
+  padding-top:calc(var(--u)*8px);
+}
+.piece{
+  width:calc(var(--u)*var(--ps) * 1px);
+  height:calc(var(--u)*var(--ps) * 1px);
+  touch-action:none;cursor:grab;
+  filter:drop-shadow(0 calc(var(--u)*3px) calc(var(--u)*3px) rgba(0,0,0,.35));
+  animation:bob 2.6s ease-in-out infinite;
+}
+.piece svg{width:100%;height:100%;display:block;pointer-events:none}
+.piece.hidden{opacity:0;pointer-events:none}
+.piece.gone{animation:vanish .28s ease forwards}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(calc(var(--u)*-4px)) rotate(2deg)}}
+@keyframes vanish{to{transform:scale(.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){.piece{animation:none}}
+
+#drag{position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:50}
+.proxy{
+  position:fixed;left:0;top:0;pointer-events:none;
+  filter:drop-shadow(0 calc(var(--u)*10px) calc(var(--u)*8px) rgba(0,0,0,.35));
+  will-change:transform;
+}
+.proxy svg{width:100%;height:100%;display:block}
+.proxy.snapback{transition:transform .22s cubic-bezier(.4,0,.2,1)}
+
+.hole-wrong{animation:nope .34s ease}
+@keyframes nope{0%,100%{transform:translate(0,0)}25%{transform:translate(-4px,0)}75%{transform:translate(4px,0)}}
+.pop{animation:pop .34s cubic-bezier(.2,1.7,.4,1)}
+@keyframes pop{0%{transform:scale(.35)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
+.cheer{animation:cheer .7s ease}
+@keyframes cheer{0%,100%{transform:rotate(0)}20%{transform:rotate(-2.5deg)}60%{transform:rotate(2.5deg)}}
+
+/* ---------- 過關 ---------- */
+#win{
+  position:absolute;inset:0;z-index:60;display:none;
+  place-items:center;
+  background:rgba(60,25,5,.45);backdrop-filter:blur(2px);
+}
+#win.show{display:grid}
+.card{
+  width:calc(var(--u)*280px);
+  background:#fff6e0;border-radius:calc(var(--u)*28px);
+  padding:calc(var(--u)*26px) calc(var(--u)*22px);
+  text-align:center;
+  border:calc(var(--u)*5px) solid #e8b04b;
+  box-shadow:0 calc(var(--u)*14px) calc(var(--u)*30px) rgba(0,0,0,.35);
+  animation:pop .4s cubic-bezier(.2,1.7,.4,1);
+}
+.card h2{font-size:calc(var(--u)*34px);color:#e0432f;letter-spacing:.05em}
+.card p{font-size:calc(var(--u)*16px);color:#8a5a2b;margin:calc(var(--u)*8px) 0 calc(var(--u)*18px)}
+.bigbtn{
+  border:0;width:100%;
+  padding:calc(var(--u)*14px);border-radius:calc(var(--u)*18px);
+  font-size:calc(var(--u)*21px);font-weight:800;font-family:inherit;
+  background:#3fb27f;color:#fff;cursor:pointer;
+  box-shadow:0 calc(var(--u)*5px) 0 #2a8460;
+  touch-action:manipulation;
+}
+.bigbtn:active{transform:translateY(calc(var(--u)*3px));box-shadow:0 calc(var(--u)*2px) 0 #2a8460}
+
+#confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:55}
+.conf{position:absolute;top:-6%;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(720deg)}}
+
+/* ---------- 橫向提示 ---------- */
+#rotate{
+  position:fixed;inset:0;z-index:99;display:none;
+  place-items:center;text-align:center;
+  background:#7d3d1d;color:#ffe9a8;font-size:18px;line-height:1.8;
+}
+#rotate.show{display:grid}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="hud">
+    <span class="stage-label" id="stageLabel">第 1 關</span>
+    <span class="dots" id="dots"></span>
+    <button class="iconbtn" id="btnSound" aria-label="音效開關">🔊</button>
+    <button class="iconbtn" id="btnReset" aria-label="重來">↻</button>
+  </div>
+
+  <div id="board">
+    <svg id="scene" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet" aria-label="配對板"></svg>
+  </div>
+
+  <div id="tray"><div id="pieces"></div></div>
+
+  <div id="confetti"></div>
+  <div id="win">
+    <div class="card">
+      <h2 id="winTitle">太棒了！</h2>
+      <p id="winText">全部形狀都放好了</p>
+      <button class="bigbtn" id="btnNext">下一關</button>
+    </div>
+  </div>
+</div>
+
+<div id="drag"></div>
+<div id="rotate">📱<br>請把手機直立起來</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ==================================================
+   1. 視窗鎖定：禁止縮放、精準貼合手機可視區
+   ================================================== */
+const root = document.documentElement;
+
+function fitViewport(){
+  const vv = window.visualViewport;
+  const w = Math.round(vv ? vv.width  : window.innerWidth);
+  const h = Math.round(vv ? vv.height : window.innerHeight);
+  root.style.setProperty('--vw', w + 'px');
+  root.style.setProperty('--vh', h + 'px');
+  // 以 400x800 為設計基準推導縮放單位，所有尺寸都用 calc(var(--u)*Npx)
+  root.style.setProperty('--u', Math.min(w / 400, h / 800).toFixed(4));
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  document.getElementById('rotate').classList.toggle('show', coarse && w > h);
+}
+fitViewport();
+addEventListener('resize', fitViewport);
+addEventListener('orientationchange', () => setTimeout(fitViewport, 250));
+if (window.visualViewport){
+  visualViewport.addEventListener('resize', fitViewport);
+  visualViewport.addEventListener('scroll', fitViewport);
+}
+
+// iOS Safari 捏合縮放
+['gesturestart','gesturechange','gestureend'].forEach(t =>
+  document.addEventListener(t, e => e.preventDefault(), { passive:false }));
+// 多指手勢 / 拖曳造成的頁面移動
+document.addEventListener('touchmove', e => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive:false });
+// 連點兩下放大
+let lastTap = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 320) e.preventDefault();
+  lastTap = now;
+}, { passive:false });
+// 桌機 Ctrl + 滾輪 / 觸控板捏合
+addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ==================================================
+   2. 形狀資料
+   ================================================== */
+const SHAPES = {
+  circle:   '<circle cx="50" cy="50" r="43"/>',
+  square:   '<rect x="9" y="9" width="82" height="82" rx="9"/>',
+  triangle: '<path d="M44 11 Q50 3 56 11 L92 82 Q96 92 85 92 L15 92 Q4 92 8 82 Z"/>',
+  star:     '<polygon points="50,6 60.9,35 91.9,36.4 67.6,55.7 75.9,85.6 50,68.5 24.1,85.6 32.4,55.7 8.1,36.4 39.1,35"/>',
+  heart:    '<path d="M50 90 C18 68 8 47 8 34 C8 19 20 10 32 10 C40 10 46 14 50 21 C54 14 60 10 68 10 C80 10 92 19 92 34 C92 47 82 68 50 90 Z"/>',
+  hexagon:  '<polygon points="50,7 87,28.5 87,71.5 50,93 13,71.5 13,28.5"/>',
+  diamond:  '<path d="M44 12 Q50 5 56 12 L88 44 Q95 50 88 56 L56 88 Q50 95 44 88 L12 56 Q5 50 12 44 Z"/>',
+  cross:    '<path d="M36 9 h28 v27 h27 v28 h-27 v27 h-28 v-27 h-27 v-28 h27 z"/>',
+  oval:     '<ellipse cx="50" cy="50" rx="44" ry="31"/>',
+  moon:     '<path d="M65 8.7 A44 44 0 1 0 65 91.3 A52 52 0 0 1 65 8.7 Z"/>'
+};
+const SHAPE_NAMES = {
+  circle:'圓形', square:'正方形', triangle:'三角形', star:'星星', heart:'愛心',
+  hexagon:'六角形', diamond:'菱形', cross:'十字', oval:'橢圓', moon:'月亮'
+};
+const SHAPE_COLORS = {
+  circle:'#3aa5d8', square:'#e0432f', triangle:'#3fb27f', star:'#f2b134',
+  heart:'#e8618c', hexagon:'#8a63d2', diamond:'#f07a2e', cross:'#2fbfae',
+  oval:'#c94fb0', moon:'#6d8fe0'
+};
+const KEYS = Object.keys(SHAPES);
+
+function shapeSVG(type, fill, stroke){
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <g fill="${fill}" stroke="${stroke}" stroke-width="6" stroke-linejoin="round">${SHAPES[type]}</g>
+    <g fill="rgba(255,255,255,.32)" opacity=".9" style="mix-blend-mode:screen">
+      <ellipse cx="36" cy="30" rx="14" ry="8" transform="rotate(-25 36 30)"/>
+    </g>
+  </svg>`;
+}
+function darken(hex, amt){
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, (n >> 16) - amt), g = Math.max(0, ((n >> 8) & 255) - amt), b = Math.max(0, (n & 255) - amt);
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+}
+
+/* ==================================================
+   3. 動物（紙紮娃娃）
+   ================================================== */
+const PALETTES = [
+  { body:'#2fbfae', dark:'#1f9b8d', head:'#f2c53d', accent:'#e0432f' },
+  { body:'#8a63d2', dark:'#6d4bb0', head:'#3aa5d8', accent:'#f07a2e' },
+  { body:'#e8618c', dark:'#c94a72', head:'#f2c53d', accent:'#3fb27f' },
+  { body:'#3fb27f', dark:'#2a8460', head:'#f07a2e', accent:'#3aa5d8' },
+  { body:'#f07a2e', dark:'#cd5f1a', head:'#2fbfae', accent:'#8a63d2' }
+];
+
+const ANIMALS = [
+  { name:'羊駝', slot:{ x:96, y:138, w:200, h:96 }, art:p => `
+    <rect x="298" y="140" width="48" height="66" rx="24" fill="${p.accent}"/>
+    <rect x="96"  y="228" width="32" height="60" rx="15" fill="${p.dark}"/>
+    <rect x="152" y="228" width="32" height="60" rx="15" fill="${p.dark}"/>
+    <rect x="218" y="228" width="32" height="60" rx="15" fill="${p.dark}"/>
+    <rect x="272" y="228" width="32" height="60" rx="15" fill="${p.dark}"/>
+    <rect x="152" y="56"  width="54" height="96" rx="26" fill="${p.body}"/>
+    <rect x="70"  y="118" width="240" height="128" rx="50" fill="${p.body}"/>
+    <polygon points="140,30 130,2 158,20" fill="${p.head}"/>
+    <polygon points="204,30 214,2 186,20" fill="${p.head}"/>
+    <rect x="126" y="16" width="88" height="62" rx="27" fill="${p.head}"/>
+    <circle cx="170" cy="44" r="9" fill="#33210f"/><circle cx="173.5" cy="41" r="3.2" fill="#fff"/>
+    <ellipse cx="145" cy="62" rx="13" ry="8" fill="#33210f" opacity=".18"/>` },
+
+  { name:'大象', slot:{ x:98, y:152, w:204, h:92 }, art:p => `
+    <path d="M322 176 q34 4 26 40" stroke="${p.dark}" stroke-width="11" fill="none" stroke-linecap="round"/>
+    <rect x="98"  y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <rect x="156" y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <rect x="212" y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <rect x="268" y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <rect x="76" y="124" width="248" height="132" rx="58" fill="${p.body}"/>
+    <ellipse cx="150" cy="70" rx="34" ry="42" fill="${p.accent}"/>
+    <ellipse cx="250" cy="70" rx="34" ry="42" fill="${p.accent}"/>
+    <circle cx="200" cy="72" r="55" fill="${p.head}"/>
+    <path d="M200 108 q-16 24 -2 42" stroke="${p.head}" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <circle cx="180" cy="62" r="8" fill="#33210f"/><circle cx="220" cy="62" r="8" fill="#33210f"/>
+    <circle cx="182.5" cy="59" r="2.8" fill="#fff"/><circle cx="222.5" cy="59" r="2.8" fill="#fff"/>` },
+
+  { name:'貓咪', slot:{ x:100, y:146, w:200, h:96 }, art:p => `
+    <path d="M316 168 q50 -4 46 46 q-3 34 -32 40" stroke="${p.accent}" stroke-width="21" fill="none" stroke-linecap="round"/>
+    <ellipse cx="128" cy="256" rx="30" ry="19" fill="${p.dark}"/>
+    <ellipse cx="272" cy="256" rx="30" ry="19" fill="${p.dark}"/>
+    <rect x="84" y="118" width="232" height="140" rx="62" fill="${p.body}"/>
+    <polygon points="160,58 150,10 190,38" fill="${p.head}"/>
+    <polygon points="240,58 250,10 210,38" fill="${p.head}"/>
+    <circle cx="200" cy="74" r="56" fill="${p.head}"/>
+    <circle cx="181" cy="66" r="8" fill="#33210f"/><circle cx="219" cy="66" r="8" fill="#33210f"/>
+    <circle cx="183.5" cy="63" r="2.8" fill="#fff"/><circle cx="221.5" cy="63" r="2.8" fill="#fff"/>
+    <path d="M188 90 q12 12 24 0" stroke="#33210f" stroke-width="5" fill="none" stroke-linecap="round"/>` },
+
+  { name:'小豬', slot:{ x:100, y:150, w:200, h:94 }, art:p => `
+    <path d="M318 180 q30 -2 26 26 q-2 16 -18 18" stroke="${p.dark}" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <rect x="112" y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <rect x="170" y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <rect x="226" y="240" width="38" height="52" rx="17" fill="${p.dark}"/>
+    <ellipse cx="200" cy="186" rx="124" ry="80" fill="${p.body}"/>
+    <polygon points="164,46 152,10 192,34" fill="${p.head}"/>
+    <polygon points="236,46 248,10 208,34" fill="${p.head}"/>
+    <circle cx="200" cy="82" r="58" fill="${p.head}"/>
+    <ellipse cx="200" cy="104" rx="28" ry="20" fill="${p.accent}"/>
+    <ellipse cx="191" cy="104" rx="4.5" ry="7" fill="#33210f" opacity=".55"/>
+    <ellipse cx="209" cy="104" rx="4.5" ry="7" fill="#33210f" opacity=".55"/>
+    <circle cx="180" cy="66" r="8" fill="#33210f"/><circle cx="220" cy="66" r="8" fill="#33210f"/>
+    <circle cx="182.5" cy="63" r="2.8" fill="#fff"/><circle cx="222.5" cy="63" r="2.8" fill="#fff"/>` }
+];
+
+const BACKDROP = `
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffeeb5"/><stop offset="1" stop-color="#ffd166"/>
+    </linearGradient>
+  </defs>
+  <rect x="-20" y="-20" width="440" height="340" fill="url(#sky)"/>
+  <circle cx="286" cy="66" r="62" fill="#fff2c2" opacity=".85"/>
+  <path d="M-20 236 q70 -36 140 -6 q76 32 150 2 q66 -26 150 6 v82 h-440 z" fill="#f0a83f"/>
+  <path d="M-20 262 q90 -26 180 2 q90 26 180 -6 q50 -18 100 4 v58 h-460 z" fill="#e08f2c"/>
+  <g fill="#3fb27f">
+    <rect x="16" y="196" width="15" height="66" rx="7"/>
+    <rect x="2"  y="214" width="14" height="12" rx="6"/>
+    <rect x="31" y="206" width="14" height="12" rx="6"/>
+    <rect x="2"  y="214" width="9"  height="26" rx="4"/>
+    <rect x="36" y="206" width="9"  height="34" rx="4"/>
+  </g>
+  <g fill="#4cbb8a" opacity=".9">
+    <path d="M356 250 l8 -22 l8 22 z"/><path d="M368 252 l10 -18 l7 18 z"/>
+  </g>`;
+
+/* ==================================================
+   4. 遊戲狀態
+   ================================================== */
+const scene   = document.getElementById('scene');
+const piecesEl= document.getElementById('pieces');
+const dotsEl  = document.getElementById('dots');
+const dragEl  = document.getElementById('drag');
+const winEl   = document.getElementById('win');
+const confEl  = document.getElementById('confetti');
+
+const COUNTS = [3, 3, 4, 4, 5, 5, 6];
+let level = 1;
+let holes = [];      // {type, cx, cy, size, g, filled}
+let placed = 0;
+let soundOn = true;
+
+function sample(arr, n){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+}
+
+function layout(area, n){
+  const rows  = n <= 4 ? 1 : 2;
+  const per   = Math.ceil(n / rows);
+  const size  = Math.min(area.h / rows - 6, area.w / per - 8, 64);
+  const spots = [];
+  let left = n;
+  for (let r = 0; r < rows; r++){
+    const cnt = Math.min(per, left);
+    left -= cnt;
+    const rowW = cnt * size + (cnt - 1) * 8;
+    const x0   = area.x + (area.w - rowW) / 2;
+    const y    = area.y + (area.h / rows) * (r + 0.5);
+    for (let i = 0; i < cnt; i++) spots.push({ cx: x0 + size / 2 + i * (size + 8), cy: y, size });
+  }
+  return spots;
+}
+
+function buildLevel(){
+  const animal  = ANIMALS[(level - 1) % ANIMALS.length];
+  const palette = PALETTES[(level - 1) % PALETTES.length];
+  const n       = COUNTS[Math.min(level - 1, COUNTS.length - 1)];
+  const types   = sample(KEYS, n);
+  const spots   = layout(animal.slot, n);
+
+  document.getElementById('stageLabel').textContent = '第 ' + level + ' 關';
+
+  // 洞
+  let holeMarkup = '';
+  holes = spots.map((s, i) => {
+    const t = types[i], k = s.size / 100, x = s.cx - s.size / 2, y = s.cy - s.size / 2;
+    holeMarkup += `<g class="hole" data-i="${i}">
+      <g transform="translate(${x.toFixed(2)},${(y + s.size * 0.045).toFixed(2)}) scale(${k.toFixed(4)})"
+         fill="rgba(255,255,255,.25)">${SHAPES[t]}</g>
+      <g transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${k.toFixed(4)})"
+         fill="rgba(28,12,2,.62)">${SHAPES[t]}</g>
+      <g class="fill" transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${k.toFixed(4)})"></g>
+    </g>`;
+    return { type:t, cx:s.cx, cy:s.cy, size:s.size, filled:false };
+  });
+
+  scene.innerHTML = BACKDROP +
+    `<g id="animal">${animal.art(palette)}</g>` +
+    `<g id="holeLayer">${holeMarkup}</g>`;
+  holes.forEach((h, i) => { h.g = scene.querySelector(`.hole[data-i="${i}"]`); });
+
+  // 進度點
+  dotsEl.innerHTML = holes.map(() => '<span class="dot"></span>').join('');
+
+  // 托盤零件
+  const shuffled = sample(types, types.length);
+  const ps = n <= 4 ? 66 : 56;
+  piecesEl.innerHTML = shuffled.map((t, i) => {
+    const c = SHAPE_COLORS[t];
+    return `<div class="piece" data-type="${t}" style="--ps:${ps};animation-delay:${(i * .18).toFixed(2)}s"
+              role="button" aria-label="${SHAPE_NAMES[t]}">${shapeSVG(t, c, darken(c, 48))}</div>`;
+  }).join('');
+  piecesEl.querySelectorAll('.piece').forEach(p => p.addEventListener('pointerdown', onDown));
+
+  placed = 0;
+  winEl.classList.remove('show');
+}
+
+/* ==================================================
+   5. 拖曳
+   ================================================== */
+let drag = null;
+
+function onDown(e){
+  if (drag || winEl.classList.contains('show')) return;
+  unlockAudio();
+  const el = e.currentTarget;
+  const r  = el.getBoundingClientRect();
+  el.setPointerCapture(e.pointerId);
+
+  const proxy = document.createElement('div');
+  proxy.className = 'proxy';
+  proxy.style.width  = r.width  + 'px';
+  proxy.style.height = r.height + 'px';
+  proxy.innerHTML = el.innerHTML;
+  dragEl.appendChild(proxy);
+
+  drag = {
+    el, proxy, id: e.pointerId,
+    type: el.dataset.type,
+    ox: e.clientX - r.left,
+    oy: e.clientY - r.top,
+    homeX: r.left, homeY: r.top,
+    w: r.width, h: r.height
+  };
+  el.classList.add('hidden');
+  move(e.clientX, e.clientY, 1.18);
+
+  el.addEventListener('pointermove', onMove);
+  el.addEventListener('pointerup', onUp);
+  el.addEventListener('pointercancel', onUp);
+}
+
+function move(cx, cy, scale){
+  const x = cx - drag.ox, y = cy - drag.oy;
+  drag.proxy.style.transform =
+    `translate(${x}px, ${y}px) scale(${scale}) translateY(${-drag.h * 0.12}px)`;
+  drag.x = x; drag.y = y;
+}
+
+function onMove(e){
+  if (!drag || e.pointerId !== drag.id) return;
+  e.preventDefault();
+  move(e.clientX, e.clientY, 1.18);
+  const hit = findHole(e.clientX, e.clientY);
+  holes.forEach(h => { if (h.g) h.g.style.opacity = (h === hit && !h.filled) ? '.7' : '1'; });
+}
+
+function findHole(cx, cy){
+  let best = null, bestD = Infinity;
+  for (const h of holes){
+    if (h.filled) continue;
+    const r = h.g.getBoundingClientRect();
+    const hx = r.left + r.width / 2, hy = r.top + r.height / 2;
+    const d  = Math.hypot(cx - hx, cy - hy);
+    if (d < r.width * 0.95 && d < bestD){ bestD = d; best = h; }
+  }
+  return best;
+}
+
+function onUp(e){
+  if (!drag || e.pointerId !== drag.id) return;
+  const el = drag.el;
+  el.removeEventListener('pointermove', onMove);
+  el.removeEventListener('pointerup', onUp);
+  el.removeEventListener('pointercancel', onUp);
+  holes.forEach(h => { if (h.g) h.g.style.opacity = '1'; });
+
+  const hit = findHole(e.clientX, e.clientY);
+  if (hit && hit.type === drag.type) fillHole(hit);
+  else { if (hit) shake(hit); snapBack(); }
+}
+
+function snapBack(){
+  const d = drag; drag = null;
+  d.proxy.classList.add('snapback');
+  requestAnimationFrame(() => {
+    d.proxy.style.transform = `translate(${d.homeX}px, ${d.homeY}px) scale(1)`;
+  });
+  setTimeout(() => { d.proxy.remove(); d.el.classList.remove('hidden'); }, 230);
+  beep(180, 0.12, 'square');
+}
+
+function shake(h){ h.g.classList.add('hole-wrong'); setTimeout(() => h.g.classList.remove('hole-wrong'), 360); }
+
+function fillHole(h){
+  const d = drag; drag = null;
+  d.proxy.remove();
+  d.el.classList.add('gone');
+  setTimeout(() => d.el.remove(), 300);
+
+  const c = SHAPE_COLORS[h.type];
+  const g = h.g.querySelector('.fill');
+  g.innerHTML = `<g fill="${c}" stroke="${darken(c, 48)}" stroke-width="6" stroke-linejoin="round">${SHAPES[h.type]}</g>`;
+  h.g.classList.add('pop');
+  setTimeout(() => h.g.classList.remove('pop'), 360);
+  h.filled = true;
+
+  placed++;
+  const dot = dotsEl.children[placed - 1];
+  if (dot) dot.classList.add('on');
+  beep(660 + placed * 70, 0.14, 'triangle');
+
+  if (placed === holes.length) setTimeout(win, 420);
+}
+
+/* ==================================================
+   6. 過關
+   ================================================== */
+function win(){
+  const a = document.getElementById('animal');
+  if (a){ a.classList.add('cheer'); setTimeout(() => a.classList.remove('cheer'), 720); }
+  confetti();
+  [0, 130, 260, 430].forEach((t, i) => setTimeout(() => beep([523, 659, 784, 1047][i], 0.18, 'triangle'), t));
+  document.getElementById('winTitle').textContent = ['太棒了！', '好厲害！', '全部答對！'][level % 3];
+  document.getElementById('winText').textContent  = ANIMALS[(level - 1) % ANIMALS.length].name + '的衣服完成了';
+  setTimeout(() => winEl.classList.add('show'), 500);
+}
+
+function confetti(){
+  const cols = ['#e0432f', '#f2b134', '#3fb27f', '#3aa5d8', '#e8618c', '#8a63d2'];
+  for (let i = 0; i < 46; i++){
+    const c = document.createElement('i');
+    c.className = 'conf';
+    const s = 6 + Math.random() * 8;
+    c.style.cssText = `left:${Math.random() * 100}%;width:${s}px;height:${s * 1.6}px;` +
+      `background:${cols[i % cols.length]};animation-duration:${1.6 + Math.random() * 1.4}s;` +
+      `animation-delay:${Math.random() * .5}s;`;
+    confEl.appendChild(c);
+    setTimeout(() => c.remove(), 3400);
+  }
+}
+
+/* ==================================================
+   7. 音效
+   ================================================== */
+let ac = null;
+function unlockAudio(){
+  if (!ac){ try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch(_){} }
+  if (ac && ac.state === 'suspended') ac.resume();
+}
+function beep(freq, dur, type){
+  if (!soundOn || !ac) return;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type || 'sine';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.22, ac.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+  o.connect(g).connect(ac.destination);
+  o.start(); o.stop(ac.currentTime + dur + 0.02);
+}
+
+/* ==================================================
+   8. 控制
+   ================================================== */
+document.getElementById('btnNext').addEventListener('click', () => { level++; buildLevel(); });
+document.getElementById('btnReset').addEventListener('click', () => { unlockAudio(); buildLevel(); });
+document.getElementById('btnSound').addEventListener('click', e => {
+  soundOn = !soundOn;
+  e.currentTarget.textContent = soundOn ? '🔊' : '🔇';
+  unlockAudio();
+});
+
+buildLevel();
+})();
+</script>
+<script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
