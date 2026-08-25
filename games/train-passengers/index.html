@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#73ccec">
+  <title>歡樂載客小火車</title>
+  <style>
+    :root{--ink:#29445d;--sky:#83d9f3;--grass:#8bd267;--cream:#fff9e9}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{font-family:Arial,"Noto Sans TC",sans-serif;color:var(--ink);background:#69c7e9;user-select:none;-webkit-user-select:none;touch-action:none}
+    button{font:inherit;color:inherit}
+    .game{position:relative;width:100%;max-width:900px;height:100%;min-height:580px;margin:auto;overflow:hidden;background:linear-gradient(var(--sky) 0 62%,var(--grass) 62%);box-shadow:0 0 40px #24516d55;transition:background .5s}
+    .game[data-place="farm"]{--sky:#9ddff1;--grass:#8ed068}.game[data-place="forest"]{--sky:#b1e3d5;--grass:#64b96e}.game[data-place="night"]{--sky:#626ba4;--grass:#50845a}
+    .cloud{position:absolute;width:105px;height:34px;border-radius:50px;background:#fff9;animation:cloud 18s linear infinite}.cloud::before,.cloud::after{content:"";position:absolute;border-radius:50%;background:inherit}.cloud::before{left:18px;bottom:10px;width:42px;height:42px}.cloud::after{right:15px;bottom:7px;width:51px;height:51px}.c1{top:19%;left:-120px}.c2{top:33%;left:-180px;animation-delay:-9s;transform:scale(.7)}
+    @keyframes cloud{to{left:105%}}
+    header{position:relative;z-index:5;padding:calc(12px + env(safe-area-inset-top)) 16px 0;text-align:center;color:white;text-shadow:0 2px 0 #3489a6}
+    .top{display:flex;align-items:center;justify-content:space-between}.title{font-size:clamp(21px,5vw,30px);font-weight:1000}.station{padding:7px 13px;border-radius:99px;background:#ffffffdd;color:#287d99;font-size:13px;font-weight:900;text-shadow:none;box-shadow:0 4px 0 #3995af}
+    .restart{width:42px;height:42px;border:0;border-radius:50%;background:#fff;color:#438ba1;font-size:22px;font-weight:900;box-shadow:0 4px 0 #388da5;cursor:pointer}
+    .hint{display:inline-block;margin:12px auto 0;padding:9px 17px;border-radius:18px;background:#fffbea;color:#355269;font-size:clamp(14px,3.7vw,17px);font-weight:900;text-shadow:none;box-shadow:0 5px 0 #c5d8ce;transition:.2s}
+    .hint.good{background:#dff8d8;color:#287541}.hint.bad{background:#ffe1db;color:#a4443c;animation:shake .25s linear 2}
+    .scenery{position:absolute;inset:0;pointer-events:none}.sun{position:absolute;right:7%;top:18%;width:64px;height:64px;border-radius:50%;background:#ffe76e;box-shadow:0 0 0 13px #ffe76e33}.hill{position:absolute;bottom:34%;width:55%;height:24%;border-radius:50% 50% 0 0;background:#62b96c}.h1{left:-15%}.h2{right:-15%;background:#74c477}.tree{position:absolute;bottom:32%;font-size:65px}.t1{left:4%}.t2{right:5%;transform:scale(.8)}
+    .train-area{position:absolute;z-index:3;left:0;right:0;bottom:118px;height:260px;display:flex;align-items:flex-end;justify-content:center;pointer-events:none}
+    .train{display:flex;align-items:flex-end;justify-content:center;width:max-content;max-width:98%;padding-bottom:34px;filter:drop-shadow(0 8px 2px #33575b40);pointer-events:auto;transition:none}
+    .engine{position:relative;width:142px;height:112px;margin-right:7px;border-radius:28px 18px 12px 12px;background:#f05d55;border:5px solid #fff3d8;box-shadow:inset 0 -14px #d94843}.engine::before{content:"";position:absolute;left:17px;top:-45px;width:34px;height:50px;border-radius:7px 7px 0 0;background:#425a72;box-shadow:inset 0 8px #61778b}.engine::after{content:"🚂";position:absolute;inset:12px;display:grid;place-items:center;font-size:58px}.wheel{position:absolute;bottom:-22px;width:43px;height:43px;border:7px solid #fff0ce;border-radius:50%;background:#40566b;box-shadow:inset 0 0 0 5px #7c91a2}.engine .w1{left:16px}.engine .w2{right:12px}
+    .car{position:relative;width:150px;height:122px;margin-right:7px;padding:10px;border:5px solid #fff3d8;border-radius:20px 20px 12px 12px;background:#ffc34d;box-shadow:inset 0 -15px #e8a32e;transition:.2s}.car::before{content:"";position:absolute;left:-15px;bottom:25px;width:15px;height:8px;background:#465b6c}.car .wheel{bottom:-25px;width:40px;height:40px}.car .w1{left:13px}.car .w2{right:13px}.car.filled{background:#8ddc82;box-shadow:inset 0 -15px #63b85d}.car.wrong{animation:shake .25s linear 2;background:#ff8c79}
+    .window{height:76px;border:5px solid #e08f29;border-radius:13px;background:#e9faff;display:grid;place-items:center;overflow:hidden}.car.filled .window{border-color:#4eaa55}.target{display:grid;place-items:center;width:100%;height:100%;font-size:45px}.target.color::before{content:"";width:47px;height:47px;border-radius:50%;background:var(--target);box-shadow:inset 0 -7px #0002,0 0 0 5px #fff}.seat{font-size:45px;animation:pop .35s ease}.label{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);color:#704b1c;font-size:12px;font-weight:1000}.car.filled .label{color:#286737}.train.go{animation:depart 2.4s ease-in forwards}.train.arrive{animation:arrive .75s ease-out both}
+    .track{position:absolute;z-index:2;left:0;right:0;bottom:132px;height:17px;background:repeating-linear-gradient(90deg,#725b43 0 28px,#b69a70 28px 43px);border-top:6px solid #53626b;border-bottom:6px solid #53626b}
+    .platform{position:absolute;z-index:6;left:0;right:0;bottom:0;height:120px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:#fff8e8eF;border-top:5px solid white;box-shadow:0 -8px 25px #31566a25}.pool{display:flex;align-items:center;justify-content:center;gap:clamp(8px,2.5vw,20px);height:100%}.passenger{display:grid;place-items:center;width:clamp(68px,18vw,96px);height:clamp(80px,20vw,100px);border:0;border-radius:22px;background:white;font-size:clamp(42px,10vw,57px);cursor:grab;touch-action:none;box-shadow:0 6px 0 #b9cdd0,0 8px 15px #31596a22;transition:transform .15s,opacity .2s}.passenger:active{cursor:grabbing}.passenger.color{position:relative;background:var(--passenger)}.passenger.color::before{content:"🧒";filter:drop-shadow(0 3px 0 #0002)}.passenger.color::after{content:"";position:absolute;right:6px;top:6px;width:20px;height:20px;border:3px solid white;border-radius:50%;background:var(--passenger)}.passenger.selected{outline:6px solid #ffe267;transform:translateY(-7px)}.passenger.used{opacity:0;pointer-events:none;transform:scale(.3)}
+    .drag-ghost{position:fixed;z-index:99;display:grid;place-items:center;width:82px;height:88px;border-radius:22px;background:#fff;font-size:52px;pointer-events:none;transform:translate(-50%,-55%) rotate(-4deg);box-shadow:0 10px 25px #173f5655}.drag-ghost.color{background:var(--passenger)}.drag-ghost.color::before{content:"🧒"}
+    .scene-card{position:absolute;z-index:20;inset:0;display:none;place-items:center;background:#3f9bbddd;padding:25px;text-align:center}.scene-card.show{display:grid;animation:fade .3s}.scene-card>div{width:min(390px,100%);padding:27px 20px;border-radius:28px;background:#fffaf0;box-shadow:0 10px 0 #287d98}.scene-card .big{font-size:70px}.scene-card h2{margin:5px 0;color:#2c829b;font-size:30px}.scene-card p{margin:7px 0 19px;font-weight:800}.continue{width:100%;min-height:55px;border:0;border-radius:18px;background:#ff826b;color:white;font-size:18px;font-weight:1000;box-shadow:0 7px 0 #cf5849;cursor:pointer}
+    @keyframes shake{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}@keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.16)}}@keyframes depart{20%{transform:translateX(20px)}100%{transform:translateX(120vw)}}@keyframes arrive{from{transform:translateX(-120vw)}to{transform:none}}@keyframes fade{from{opacity:0}}
+    @media(max-width:670px){.train{transform-origin:bottom center;scale:.76}.train.four{scale:.62}.train.go{animation-name:departMobile}.train-area{bottom:108px}.track{bottom:126px}.engine{width:125px}.car{width:128px}.platform{height:115px}@keyframes departMobile{20%{transform:translateX(20px)}100%{transform:translateX(150vw)}}}
+    @media(max-width:470px){.train{scale:.62}.train.four{scale:.48}.train-area{height:225px}.title{font-size:20px}.station{padding:6px 9px}.sun{top:23%}}
+  </style>
+</head>
+<body>
+  <main class="game" data-place="farm">
+    <div class="scenery" aria-hidden="true"><div class="sun"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="hill h1"></div><div class="hill h2"></div><div class="tree t1">🌳</div><div class="tree t2">🌲</div></div>
+    <header>
+      <div class="top"><div class="station">第 1 站</div><div class="title">🚂 歡樂載客小火車</div><button class="restart" aria-label="重新開始">↻</button></div>
+      <div class="hint" role="status" aria-live="polite">看車廂顏色，把相同顏色的乘客拖上車！</div>
+    </header>
+    <section class="train-area" aria-label="火車車廂"><div class="train"></div></section>
+    <div class="track" aria-hidden="true"></div>
+    <section class="platform" aria-label="候車乘客"><div class="pool"></div></section>
+    <section class="scene-card" aria-live="polite"><div><div class="big">🚂✨</div><h2>全部上車了！</h2><p>火車要開往下一站囉！</p><button class="continue">出發！</button></div></section>
+  </main>
+  <script>
+  (()=>{
+    'use strict';
+    const game=document.querySelector('.game'),train=document.querySelector('.train'),pool=document.querySelector('.pool');
+    const hint=document.querySelector('.hint'),station=document.querySelector('.station'),card=document.querySelector('.scene-card');
+    const scenes=[
+      {place:'farm',kind:'color',prompt:'看車廂顏色，把相同顏色的乘客拖上車！',items:[{id:'red',value:'#ff6961',name:'紅色'},{id:'blue',value:'#52a7ed',name:'藍色'},{id:'yellow',value:'#ffd84d',name:'黃色'}]},
+      {place:'forest',kind:'animal',prompt:'看車廂動物，把相同的動物朋友拖上車！',items:[{id:'rabbit',value:'🐰',name:'小兔子'},{id:'panda',value:'🐼',name:'熊貓'},{id:'lion',value:'🦁',name:'獅子'}]},
+      {place:'night',kind:'animal',prompt:'夜晚列車來了，幫動物找到自己的車廂！',items:[{id:'cat',value:'🐱',name:'小貓'},{id:'dog',value:'🐶',name:'小狗'},{id:'frog',value:'🐸',name:'青蛙'}]},
+      {place:'farm',kind:'color',prompt:'挑戰四節車廂！把相同顏色的乘客送上車！',items:[{id:'purple',value:'#a879dc',name:'紫色'},{id:'green',value:'#64c978',name:'綠色'},{id:'orange',value:'#ff9b48',name:'橘色'},{id:'pink',value:'#f58eb6',name:'粉紅色'}]},
+      {place:'forest',kind:'animal',prompt:'森林快車有四節車廂，幫動物朋友找到位置！',items:[{id:'monkey',value:'🐵',name:'猴子'},{id:'fox',value:'🦊',name:'狐狸'},{id:'koala',value:'🐨',name:'無尾熊'},{id:'tiger',value:'🐯',name:'老虎'}]},
+      {place:'night',kind:'animal',prompt:'最後一關！讓四位動物乘上夜晚列車！',items:[{id:'mouse',value:'🐭',name:'老鼠'},{id:'pig',value:'🐷',name:'小豬'},{id:'bear',value:'🐻',name:'小熊'},{id:'penguin',value:'🐧',name:'企鵝'}]}
+    ];
+    let sceneIndex=0,matched=0,drag=null,ghost=null,selected=null,audioContext;
+    const shuffle=list=>[...list].sort(()=>Math.random()-.5);
+    function tone(freq,start,duration,type='sine',volume=.1){
+      audioContext??=new (window.AudioContext||window.webkitAudioContext)();
+      const o=audioContext.createOscillator(),g=audioContext.createGain(),now=audioContext.currentTime;
+      o.type=type;o.frequency.setValueAtTime(freq,now+start);g.gain.setValueAtTime(volume,now+start);g.gain.exponentialRampToValueAtTime(.001,now+start+duration);o.connect(g).connect(audioContext.destination);o.start(now+start);o.stop(now+start+duration);
+    }
+    function correctSound(){tone(523,0,.12);tone(659,.1,.12);tone(784,.2,.2)}
+    function wrongSound(){tone(190,0,.15,'square',.055);tone(145,.13,.22,'square',.05)}
+    function whistle(){tone(880,0,.2,'sine',.08);tone(1175,.18,.4,'sine',.08)}
+    function renderScene(){
+      const scene=scenes[sceneIndex];matched=0;selected=null;game.dataset.place=scene.place;station.textContent=`第 ${sceneIndex+1} 關`;setHint(scene.prompt);card.classList.remove('show');train.className=`train arrive${scene.items.length===4?' four':''}`;
+      train.innerHTML='<div class="engine"><i class="wheel w1"></i><i class="wheel w2"></i></div>';
+      scene.items.forEach(item=>{
+        const car=document.createElement('div');car.className='car';car.dataset.target=item.id;car.setAttribute('aria-label',`${item.name}車廂`);
+        const target=scene.kind==='color'?`<span class="target color" style="--target:${item.value}"></span>`:`<span class="target">${item.value}</span>`;
+        car.innerHTML=`<div class="window">${target}</div><b class="label">${item.name}</b><i class="wheel w1"></i><i class="wheel w2"></i>`;train.append(car);
+      });
+      pool.innerHTML='';shuffle(scene.items).forEach(item=>{
+        const p=document.createElement('button');p.className=`passenger ${scene.kind}`;p.dataset.id=item.id;p.setAttribute('aria-label',item.name);
+        if(scene.kind==='color')p.style.setProperty('--passenger',item.value);else p.textContent=item.value;
+        p.addEventListener('pointerdown',startDrag);p.addEventListener('click',()=>tapPassenger(p));pool.append(p);
+      });
+      setTimeout(()=>train.classList.remove('arrive'),800);
+    }
+    function setHint(text,state=''){hint.textContent=text;hint.className=`hint ${state}`;}
+    function startDrag(e){if(e.button!==undefined&&e.button!==0)return;e.preventDefault();drag=e.currentTarget;selectPassenger(drag);makeGhost(drag);moveGhost(e);window.addEventListener('pointermove',moveGhost);window.addEventListener('pointerup',endDrag,{once:true});}
+    function makeGhost(p){ghost=document.createElement('div');ghost.className=`drag-ghost ${scenes[sceneIndex].kind}`;if(p.style.getPropertyValue('--passenger'))ghost.style.setProperty('--passenger',p.style.getPropertyValue('--passenger'));else ghost.textContent=p.textContent;document.body.append(ghost)}
+    function moveGhost(e){if(ghost){ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px'}}
+    function endDrag(e){window.removeEventListener('pointermove',moveGhost);ghost?.remove();ghost=null;const car=document.elementFromPoint(e.clientX,e.clientY)?.closest('.car');if(car)tryMatch(drag,car);drag=null}
+    function selectPassenger(p){document.querySelectorAll('.passenger').forEach(x=>x.classList.remove('selected'));selected=p;p.classList.add('selected')}
+    function tapPassenger(p){if(p.classList.contains('used'))return;selectPassenger(p);setHint(`已選擇${p.getAttribute('aria-label')}，再點一下它的車廂`) }
+    train.addEventListener('click',e=>{const car=e.target.closest('.car');if(car&&selected&&!selected.classList.contains('used'))tryMatch(selected,car)});
+    function tryMatch(passenger,car){
+      if(car.classList.contains('filled'))return;
+      if(passenger.dataset.id!==car.dataset.target){wrongSound();car.classList.remove('wrong');void car.offsetWidth;car.classList.add('wrong');setHint('不一樣喔，再找找看！','bad');return}
+      correctSound();passenger.classList.add('used');car.classList.add('filled');const item=scenes[sceneIndex].items.find(x=>x.id===passenger.dataset.id);car.querySelector('.window').innerHTML=`<span class="seat">${scenes[sceneIndex].kind==='color'?'🧒':item.value}</span>`;car.querySelector('.label').textContent='上車囉！';matched++;selected=null;setHint('答對了！繼續幫其他乘客找車廂','good');if(matched===scenes[sceneIndex].items.length)setTimeout(complete,650)
+    }
+    function complete(){
+      whistle();setHint('全部上車，火車準備出發！','good');
+      const isLast=sceneIndex===scenes.length-1;
+      card.querySelector('h2').textContent=isLast?'六關都完成了！':'全部上車了！';
+      card.querySelector('p').textContent=isLast?'你是最棒的小小列車長！':'火車要開往下一站囉！';
+      card.querySelector('.continue').textContent=isLast?'再玩一次':'出發！';card.classList.add('show');
+    }
+    function depart(){card.classList.remove('show');train.classList.add('go');whistle();setTimeout(()=>{sceneIndex=(sceneIndex+1)%scenes.length;renderScene()},2200)}
+    document.querySelector('.continue').addEventListener('click',depart);document.querySelector('.restart').addEventListener('click',()=>{sceneIndex=0;renderScene()});
+    renderScene();document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+  })();
+  </script>
+<script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
