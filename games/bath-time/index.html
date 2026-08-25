@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#79d9ef">
+  <title>洗澡時間｜幫小狗洗香香</title>
+  <style>
+    :root { --ink:#274158; --blue:#62cde7; --cream:#fff9e9; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { margin:0; width:100%; height:100%; overflow:hidden; overscroll-behavior:none; }
+    body { font-family:Arial,"Noto Sans TC",sans-serif; color:var(--ink); background:#72d4e9; user-select:none; -webkit-user-select:none; touch-action:none; }
+    button { font:inherit; color:inherit; }
+    .app { position:relative; width:100%; max-width:460px; height:100%; min-height:560px; margin:auto; overflow:hidden; background:linear-gradient(#7ad9ed 0 22%,#dff8fa 22% 100%); box-shadow:0 0 45px #22586a40; }
+    .tile { position:absolute; inset:22% 0 0; opacity:.38; background-image:linear-gradient(#72c8d7 1px,transparent 1px),linear-gradient(90deg,#72c8d7 1px,transparent 1px); background-size:74px 74px; }
+    header { position:relative; z-index:4; height:124px; padding:calc(14px + env(safe-area-inset-top)) 20px 8px; color:white; text-shadow:0 2px 0 #288da4; }
+    .top { display:flex; align-items:center; justify-content:space-between; }
+    .title { display:flex; align-items:center; gap:10px; font-size:24px; font-weight:900; }
+    .title b { display:grid; place-items:center; width:43px; height:43px; border-radius:14px; background:#fff; color:#4ebdd8; text-shadow:none; transform:rotate(-5deg); box-shadow:0 5px 0 #299bb8; }
+    .restart { width:43px; height:43px; border:0; border-radius:50%; background:#ffffffd9; color:#338ca4; font-size:23px; font-weight:900; box-shadow:0 4px 0 #2a9ab5; cursor:pointer; touch-action:manipulation; }
+    .steps { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:11px; }
+    .step { display:flex; align-items:center; gap:5px; padding:6px 9px; border-radius:99px; background:#319fba66; font-size:12px; font-weight:900; opacity:.65; }
+    .step.active { background:white; color:#287e94; text-shadow:none; opacity:1; transform:scale(1.04); }
+    .step.done { opacity:1; background:#55b96a; }
+    .line { width:13px; height:4px; border-radius:4px; background:#ffffff88; }
+    .message { position:absolute; z-index:6; top:118px; left:50%; width:max-content; max-width:88%; transform:translateX(-50%); margin:0; padding:9px 15px; border-radius:18px; background:#fffdf5; font-size:15px; font-weight:900; text-align:center; box-shadow:0 5px 0 #badbd9,0 8px 20px #366b7722; transition:.2s; }
+    .message::after { content:""; position:absolute; left:50%; bottom:-8px; width:16px; height:16px; background:#fffdf5; transform:translateX(-50%) rotate(45deg); }
+    .stage { position:absolute; z-index:2; left:0; right:0; top:145px; bottom:104px; touch-action:none; }
+    canvas { display:block; width:100%; height:100%; touch-action:none; }
+    .progress-wrap { position:absolute; z-index:5; left:22px; right:22px; bottom:112px; height:16px; padding:4px; border-radius:99px; background:#fff; box-shadow:0 3px 0 #afced2; pointer-events:none; }
+    .progress { width:0; height:8px; border-radius:99px; background:linear-gradient(90deg,#ffd954,#ff9e55); transition:width .2s; }
+    .tools { position:absolute; z-index:7; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; height:98px; padding:10px 15px calc(10px + env(safe-area-inset-bottom)); background:#fff9e9f2; border-top:4px solid white; box-shadow:0 -8px 24px #32616b1c; }
+    .tool { position:relative; border:0; border-radius:20px; background:#e8f1ee; font-weight:900; font-size:13px; cursor:pointer; opacity:.48; filter:grayscale(.5); touch-action:manipulation; box-shadow:0 5px 0 #bdd1cf; }
+    .tool span { display:block; margin-bottom:2px; font-size:31px; line-height:1; }
+    .tool.ready { opacity:1; filter:none; }
+    .tool.active { background:#fff2a8; opacity:1; filter:none; transform:translateY(-5px); box-shadow:0 8px 0 #e1bd4d; }
+    .tool.done { opacity:.7; filter:none; background:#d9f4d4; }
+    .tool.done::after { content:"✓"; position:absolute; top:5px; right:8px; display:grid; place-items:center; width:19px; height:19px; border-radius:50%; background:#53b865; color:white; }
+    .celebrate { position:absolute; z-index:9; inset:0; display:none; place-items:center; padding:25px; background:#5bc6dfdd; text-align:center; }
+    .celebrate.show { display:grid; animation:fade .35s ease; }
+    .card { width:100%; padding:30px 20px; border-radius:32px; background:#fffdf3; box-shadow:0 12px 0 #238aa3; }
+    .card .big { font-size:74px; animation:bounce .8s ease infinite alternate; }
+    .card h2 { margin:6px 0; font-size:34px; color:#27849a; }
+    .card p { margin:0 0 20px; font-weight:800; color:#5c7080; }
+    .again { width:100%; min-height:57px; border:0; border-radius:18px; background:#ff846d; color:white; font-size:19px; font-weight:900; box-shadow:0 7px 0 #d45b4b; touch-action:manipulation; }
+    @keyframes fade { from { opacity:0; } }
+    @keyframes bounce { to { transform:translateY(-12px) rotate(5deg); } }
+    @media (max-height:650px) {
+      header { height:103px; padding-top:10px; }.steps { margin-top:5px; }.stage { top:120px; }.message { top:97px; }.progress-wrap { bottom:94px; }.tools { height:83px; padding-top:7px; }.tool span { font-size:25px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="tile" aria-hidden="true"></div>
+    <header>
+      <div class="top">
+        <div class="title"><b>♨</b>洗澡時間</div>
+        <button class="restart" aria-label="重新開始">↻</button>
+      </div>
+      <div class="steps" aria-label="洗澡步驟">
+        <div class="step active" data-step="wash">1 擦泡泡</div><i class="line"></i>
+        <div class="step" data-step="rinse">2 沖沖水</div><i class="line"></i>
+        <div class="step" data-step="dry">3 吹乾乾</div>
+      </div>
+    </header>
+    <p class="message" role="status" aria-live="polite">拖曳海綿，幫小狗洗乾淨！</p>
+    <div class="stage"><canvas aria-label="髒兮兮的小狗洗澡遊戲"></canvas></div>
+    <div class="progress-wrap" aria-hidden="true"><div class="progress"></div></div>
+    <nav class="tools" aria-label="洗澡工具">
+      <button class="tool ready active" data-tool="sponge"><span>🧽</span>海綿</button>
+      <button class="tool" data-tool="shower"><span>🚿</span>沖水</button>
+      <button class="tool" data-tool="dryer"><span>💨</span>吹風</button>
+    </nav>
+    <section class="celebrate" aria-live="polite">
+      <div class="card"><div class="big">🐶✨</div><h2>洗香香了！</h2><p>小狗變得乾乾淨淨，謝謝你！</p><button class="again">再洗一次</button></div>
+    </section>
+  </main>
+
+  <script>
+    (()=>{
+      'use strict';
+      const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');
+      const stage=document.querySelector('.stage'),message=document.querySelector('.message'),bar=document.querySelector('.progress');
+      const tools=[...document.querySelectorAll('.tool')],steps=[...document.querySelectorAll('.step')];
+      const W=390,H=500;
+      let phase='wash',dragging=false,pointer={x:75,y:390},soap=1,wet=1,dry=0,frame=0;
+      let bubbles=[],drops=[],sparkles=[];
+      const originalDirt=[
+        [130,210,24],[245,215,28],[188,270,21],[285,283,18],[112,313,20],[228,335,25],[165,375,17],[270,388,20],
+        [155,178,13],[220,180,15],[80,275,12],[310,330,12]
+      ];
+      let dirt=[];
+      function reset(){
+        phase='wash'; dragging=false; soap=1; wet=1; dry=0; bubbles=[]; drops=[]; sparkles=[];
+        dirt=originalDirt.map(([x,y,r])=>({x,y,r,value:1}));
+        document.querySelector('.celebrate').classList.remove('show');
+        updateUI('拖曳海綿，幫小狗洗乾淨！',0);
+      }
+      function updateUI(text,percent){
+        message.textContent=text; bar.style.width=Math.max(0,Math.min(100,percent))+'%';
+        const order=['wash','rinse','dry'];
+        steps.forEach((el,i)=>{ el.classList.toggle('active',el.dataset.step===phase); el.classList.toggle('done',order.indexOf(phase)>i); });
+        tools.forEach((el,i)=>{ el.classList.toggle('active',el.dataset.tool===({wash:'sponge',rinse:'shower',dry:'dryer'}[phase])); el.classList.toggle('ready',i<=order.indexOf(phase)); el.classList.toggle('done',i<order.indexOf(phase)); });
+      }
+      function nextPhase(next){
+        phase=next;
+        if(next==='rinse') updateUI('好棒！現在拖曳蓮蓬頭沖掉泡泡',0);
+        if(next==='dry') updateUI('最後用吹風機，把小狗吹乾乾！',0);
+      }
+      function resize(){ const dpr=Math.min(devicePixelRatio||1,2); canvas.width=stage.clientWidth*dpr; canvas.height=stage.clientHeight*dpr; }
+      new ResizeObserver(resize).observe(stage); resize();
+      function logical(event){ const r=canvas.getBoundingClientRect(); return {x:(event.clientX-r.left)/r.width*W,y:(event.clientY-r.top)/r.height*H}; }
+      function begin(event){ event.preventDefault(); dragging=true; pointer=logical(event); canvas.setPointerCapture?.(event.pointerId); act(); }
+      function move(event){ if(!dragging)return; event.preventDefault(); pointer=logical(event); act(); }
+      function end(){ dragging=false; }
+      canvas.addEventListener('pointerdown',begin); canvas.addEventListener('pointermove',move); canvas.addEventListener('pointerup',end); canvas.addEventListener('pointercancel',end);
+      function inDog(x,y){ return x>60&&x<330&&y>130&&y<445; }
+      function act(){
+        if(!inDog(pointer.x,pointer.y)) return;
+        if(phase==='wash'){
+          dirt.forEach(s=>{ const d=Math.hypot(pointer.x-s.x,pointer.y-s.y); if(d<s.r+38)s.value=Math.max(0,s.value-.105); });
+          for(let i=0;i<3;i++) bubbles.push({x:pointer.x+(Math.random()-.5)*42,y:pointer.y+(Math.random()-.5)*30,r:5+Math.random()*10,life:1});
+          const remain=dirt.reduce((n,s)=>n+s.value,0)/dirt.length,done=1-remain; updateUI('繼續擦擦，泡泡好多呀！',done*100);
+          if(done>.91) nextPhase('rinse');
+        } else if(phase==='rinse'){
+          soap=Math.max(0,soap-.025); for(let i=0;i<5;i++)drops.push({x:pointer.x+(Math.random()-.5)*30,y:pointer.y+10+Math.random()*35,vy:4+Math.random()*3,life:1});
+          bubbles.forEach(b=>b.life-=.05); updateUI('沖沖水，把泡泡沖乾淨！',(1-soap)*100); if(soap<=0)nextPhase('dry');
+        } else if(phase==='dry'){
+          dry=Math.min(1,dry+.022); wet=1-dry; for(let i=0;i<3;i++)sparkles.push({x:pointer.x+40+Math.random()*45,y:pointer.y+(Math.random()-.5)*40,life:1});
+          updateUI('呼～呼～快要乾了！',dry*100); if(dry>=1)finish();
+        }
+      }
+      tools.forEach(tool=>tool.addEventListener('click',()=>{
+        const wanted={sponge:'wash',shower:'rinse',dryer:'dry'}[tool.dataset.tool];
+        const order=['wash','rinse','dry'];
+        if(order.indexOf(wanted)>order.indexOf(phase)){ message.textContent=phase==='wash'?'要先用海綿洗乾淨喔！':'要先把泡泡沖掉喔！'; }
+      }));
+      function finish(){ phase='done'; dragging=false; updateUI('完成！小狗洗香香了！',100); setTimeout(()=>document.querySelector('.celebrate').classList.add('show'),450); }
+      document.querySelector('.restart').addEventListener('click',reset); document.querySelector('.again').addEventListener('click',reset);
+
+      function ellipse(x,y,rx,ry,color,rot=0){ ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.beginPath();ctx.ellipse(0,0,rx,ry,0,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.restore(); }
+      function roundRect(x,y,w,h,r,color){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=color;ctx.fill();}
+      function drawRoom(){
+        const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#dff9fb');g.addColorStop(1,'#b6e8ea');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+        ctx.strokeStyle='#8fd2d7';ctx.globalAlpha=.32;ctx.lineWidth=1;for(let x=0;x<W;x+=65){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=65){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}ctx.globalAlpha=1;
+        ellipse(195,452,180,48,'#8bd5df');ellipse(195,445,165,35,'#daf9fb');roundRect(40,410,310,55,25,'#ecfbfb');
+      }
+      function drawDog(){
+        ctx.save(); if(wet>.02){ctx.translate(0,wet*3);ctx.scale(1-wet*.018,1+wet*.018);ctx.translate(wet*3,0);}
+        const fur=wet>.02?'#bd7b43':'#d99655',light=wet>.02?'#d69a61':'#f0bc7c';
+        ellipse(195,330,105,112,fur); ellipse(115,380,35,65,fur,-.08);ellipse(275,380,35,65,fur,.08);
+        ellipse(195,220,112,100,fur);ellipse(92,225,46,78,'#8f542f',-.45);ellipse(298,225,46,78,'#8f542f',.45);
+        ellipse(195,262,65,52,light);ellipse(150,207,32,38,light);ellipse(240,207,32,38,light);
+        ellipse(151,209,15,20,'#25323b');ellipse(239,209,15,20,'#25323b');ellipse(146,203,5,7,'white');ellipse(234,203,5,7,'white');
+        ellipse(195,245,22,15,'#332b29');
+        ctx.beginPath();ctx.arc(195,259,23,0,Math.PI);ctx.strokeStyle='#5c3525';ctx.lineWidth=5;ctx.stroke();
+        ellipse(166,274,10,6,'#ec8e82');ellipse(224,274,10,6,'#ec8e82');
+        ellipse(120,423,42,24,light);ellipse(270,423,42,24,light);
+        ctx.restore();
+        dirt.forEach(s=>{if(s.value<=0)return;ctx.globalAlpha=s.value*.82;ellipse(s.x,s.y,s.r,s.r*.65,'#765a3e',s.x*.03);ctx.globalAlpha=1;});
+        if(wet>.02){ctx.globalAlpha=wet*.5;ctx.fillStyle='#58c4e7';for(let i=0;i<7;i++){const x=100+(i*43)%210,y=190+(i*67)%220;ellipse(x,y,4,9,'#58c4e7');}ctx.globalAlpha=1;}
+      }
+      function particles(){
+        bubbles=bubbles.filter(b=>b.life>0);bubbles.forEach(b=>{b.y-=.18;b.life-=phase==='rinse'?.012:.002;ctx.globalAlpha=Math.max(0,b.life)*.9;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#75cbe7';ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;});
+        drops=drops.filter(d=>d.life>0);drops.forEach(d=>{d.y+=d.vy;d.life-=.045;ctx.globalAlpha=d.life;ellipse(d.x,d.y,3,8,'#45bfe5');ctx.globalAlpha=1;});
+        sparkles=sparkles.filter(s=>s.life>0);sparkles.forEach(s=>{s.x+=2.5;s.life-=.04;ctx.globalAlpha=s.life;ctx.fillStyle='#fff';ctx.font='22px Arial';ctx.fillText('✦',s.x,s.y);ctx.globalAlpha=1;});
+      }
+      function tool(){
+        if(!dragging)return;ctx.save();ctx.translate(pointer.x,pointer.y);
+        if(phase==='wash'){ctx.rotate(-.12);roundRect(-34,-23,68,46,12,'#ffd84e');ctx.fillStyle='#e5ae28';for(let x=-20;x<28;x+=15)for(let y=-10;y<18;y+=14){ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fill();}}
+        if(phase==='rinse'){roundRect(-30,-27,60,34,13,'#8a9cab');roundRect(-7,0,14,42,7,'#718592');ctx.strokeStyle='#48c7ed';ctx.lineWidth=4;for(let x=-22;x<=22;x+=11){ctx.beginPath();ctx.moveTo(x,9);ctx.lineTo(x-5,45);ctx.stroke();}}
+        if(phase==='dry'){roundRect(-42,-25,62,50,14,'#ff806d');ctx.fillStyle='#ffb260';ctx.beginPath();ctx.moveTo(20,-15);ctx.lineTo(52,-8);ctx.lineTo(52,8);ctx.lineTo(20,15);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3;for(let x=62;x<105;x+=13){ctx.beginPath();ctx.moveTo(x,-13);ctx.lineTo(x+10,-13);ctx.stroke();ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+10,0);ctx.stroke();ctx.beginPath();ctx.moveTo(x,13);ctx.lineTo(x+10,13);ctx.stroke();}}
+        ctx.restore();
+      }
+      function render(){frame=requestAnimationFrame(render);const sx=canvas.width/(devicePixelRatio>2?2:devicePixelRatio||1)/W,sy=canvas.height/(devicePixelRatio>2?2:devicePixelRatio||1)/H;ctx.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);ctx.clearRect(0,0,W,H);drawRoom();drawDog();particles();tool();}
+      reset();render();
+      document.addEventListener('dblclick',e=>e.preventDefault(),{passive:false});
+      document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+      let lastTouch=0;document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouch<350)e.preventDefault();lastTouch=now;},{passive:false});
+    })();
+  </script>
+<script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
