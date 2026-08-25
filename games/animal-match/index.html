@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#fff4dc" />
+  <title>動物卡牌配對</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden;
+      background: #fff4dc;
+      touch-action: none;
+      -webkit-user-select: none; user-select: none;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #game { width: 100%; height: 100%; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/pixi.js@8.19.0/dist/pixi.min.js"></script>
+  <script>
+  (() => {
+    'use strict';
+
+    const DESIGN_W = 390;
+    const DESIGN_H = 844;
+    const CARD_COLS = 4;
+    const CARD_ROWS = 4;
+    // 完整動物池：每局隨機抽取，畫面永遠是 4×4（8 對）
+    const PAIRS_PER_GAME = (CARD_COLS * CARD_ROWS) / 2;
+    const ANIMAL_POOL = [
+      ['🐶', '狗'], ['🐱', '貓'], ['🐰', '兔子'], ['🐼', '熊貓'], ['🐯', '老虎'],
+      ['🦁', '獅子'], ['🐘', '大象'], ['🦒', '長頸鹿'], ['🐵', '猴子'], ['🦛', '河馬'],
+      ['🦏', '犀牛'], ['🦓', '斑馬'], ['🐺', '狼'], ['🦊', '狐狸'], ['🐻', '熊'],
+      ['🐿️', '松鼠'], ['🦔', '刺蝟'], ['🐨', '無尾熊'], ['🦘', '袋鼠'], ['🦫', '水豚'],
+      ['🐄', '乳牛'], ['🐑', '綿羊'], ['🐐', '山羊'], ['🐴', '馬'], ['🐷', '豬'],
+      ['🐔', '雞'], ['🦆', '鴨'], ['🪿', '鵝'], ['🐧', '企鵝'], ['🦉', '貓頭鷹'],
+      ['🦅', '老鷹'], ['🦜', '鸚鵡'], ['🦢', '天鵝'], ['🐬', '海豚'], ['🐳', '鯨魚'],
+      ['🦭', '海豹'], ['🐢', '烏龜'], ['🐸', '青蛙'], ['🐍', '蛇'], ['🐊', '鱷魚'],
+      ['🐟', '金魚'], ['🐠', '小丑魚'], ['🦈', '鯊魚'], ['🦀', '螃蟹'], ['🐙', '章魚'],
+      ['⭐', '海星'], ['🦋', '蝴蝶'], ['🐝', '蜜蜂'], ['🐞', '瓢蟲'], ['🐌', '蝸牛']
+    ];
+    const ANIMAL_NAMES = Object.fromEntries(ANIMAL_POOL);
+    // 每局重新填入，畫面仍是 8 對
+    let ANIMALS = ANIMAL_POOL.slice(0, PAIRS_PER_GAME).map(pair => pair[0]);
+
+    const COLORS = {
+      background: 0xFFF4DC,
+      panel: 0xFFFFFF,
+      ink: 0x3F332C,
+      muted: 0x89786B,
+      accent: 0xFF8A65,
+      accentDark: 0xE8694B,
+      cardBack: 0x6EC5B8,
+      cardBackDark: 0x43A99B,
+      cardFront: 0xFFFDF8,
+      matched: 0xFFF0B8,
+      shadow: 0xB89B7D,
+      overlay: 0x2E2723
+    };
+
+    const app = new PIXI.Application();
+    let root;
+    let cardsLayer;
+    let movesText;
+    let timeText;
+    let bestText;
+    let overlay;
+    let firstCard = null;
+    let secondCard = null;
+    let locked = false;
+    let moves = 0;
+    let matchedPairs = 0;
+    let startedAt = 0;
+    let elapsed = 0;
+    let timerRunning = false;
+    let deckId = 0;
+
+    const tweens = [];
+
+    function roundedRect(x, y, w, h, radius, fill, stroke = null, strokeWidth = 0) {
+      const g = new PIXI.Graphics().roundRect(x, y, w, h, radius).fill(fill);
+      if (stroke !== null && strokeWidth > 0) g.stroke({ color: stroke, width: strokeWidth });
+      return g;
+    }
+
+    function makeText(text, size, color, weight = '600', align = 'left') {
+      return new PIXI.Text({
+        text,
+        style: {
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          fontSize: size,
+          fill: color,
+          fontWeight: weight,
+          align
+        }
+      });
+    }
+
+    function tween(target, property, to, duration = 220, ease = easeOutCubic, onComplete = null) {
+      tweens.push({
+        target,
+        property,
+        from: target[property],
+        to,
+        duration,
+        elapsed: 0,
+        ease,
+        onComplete
+      });
+    }
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    function easeOutBack(t) {
+      const c1 = 1.70158;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    }
+
+    function shuffle(values) {
+      const a = [...values];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function formatTime(seconds) {
+      const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const sec = Math.floor(seconds % 60).toString().padStart(2, '0');
+      return `${min}:${sec}`;
+    }
+
+    function resize() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      app.renderer.resize(width, height);
+      const scale = Math.min(width / DESIGN_W, height / DESIGN_H);
+      root.scale.set(scale);
+      root.position.set((width - DESIGN_W * scale) / 2, (height - DESIGN_H * scale) / 2);
+    }
+
+    function buildBackground() {
+      const bg = new PIXI.Graphics().rect(0, 0, DESIGN_W, DESIGN_H).fill(COLORS.background);
+      root.addChild(bg);
+
+      const bubbleData = [
+        [28, 122, 28, 0xFFD9C9, 0.55],
+        [357, 154, 42, 0xD9F2EC, 0.7],
+        [42, 764, 48, 0xE8D9FF, 0.45],
+        [355, 730, 34, 0xFFE4A8, 0.65]
+      ];
+      bubbleData.forEach(([x, y, r, c, a]) => {
+        const b = new PIXI.Graphics().circle(x, y, r).fill({ color: c, alpha: a });
+        root.addChild(b);
+      });
+    }
+
+    function buildHeader() {
+      const title = makeText('動物卡牌配對', 30, COLORS.ink, '800', 'center');
+      title.anchor.set(0.5);
+      title.position.set(DESIGN_W / 2, 52);
+      root.addChild(title);
+
+      const subtitle = makeText('找出兩張相同的動物吧！', 14, COLORS.muted, '500', 'center');
+      subtitle.anchor.set(0.5);
+      subtitle.position.set(DESIGN_W / 2, 84);
+      root.addChild(subtitle);
+
+      const stats = roundedRect(18, 108, 354, 82, 22, COLORS.panel);
+      stats.alpha = 0.94;
+      root.addChild(stats);
+
+      const labels = [
+        ['步數', 77], ['時間', 195], ['最佳', 313]
+      ];
+      labels.forEach(([label, x]) => {
+        const t = makeText(label, 12, COLORS.muted, '600', 'center');
+        t.anchor.set(0.5);
+        t.position.set(x, 132);
+        root.addChild(t);
+      });
+
+      movesText = makeText('0', 24, COLORS.ink, '800', 'center');
+      movesText.anchor.set(0.5);
+      movesText.position.set(77, 163);
+      root.addChild(movesText);
+
+      timeText = makeText('00:00', 24, COLORS.ink, '800', 'center');
+      timeText.anchor.set(0.5);
+      timeText.position.set(195, 163);
+      root.addChild(timeText);
+
+      bestText = makeText(getBestDisplay(), 24, COLORS.ink, '800', 'center');
+      bestText.anchor.set(0.5);
+      bestText.position.set(313, 163);
+      root.addChild(bestText);
+
+      [136, 254].forEach(x => {
+        const line = new PIXI.Graphics().rect(x, 126, 1, 47).fill({ color: 0xE8DED4, alpha: 0.9 });
+        root.addChild(line);
+      });
+    }
+
+    function getBest() {
+      const value = Number(localStorage.getItem('animalMatchBest'));
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    }
+
+    function getBestDisplay() {
+      const best = getBest();
+      return best ? String(best) : '—';
+    }
+
+    function buildRestartButton() {
+      const button = new PIXI.Container();
+      button.position.set(DESIGN_W / 2, 790);
+      button.eventMode = 'static';
+      button.cursor = 'pointer';
+      button.hitArea = new PIXI.RoundedRectangle(-82, -25, 164, 50, 25);
+
+      const shadow = roundedRect(-82, -21, 164, 50, 25, COLORS.accentDark);
+      const face = roundedRect(-82, -25, 164, 50, 25, COLORS.accent);
+      button.addChild(shadow, face);
+
+      const label = makeText('重新開始', 18, 0xFFFFFF, '800', 'center');
+      label.anchor.set(0.5);
+      label.position.set(0, 0);
+      button.addChild(label);
+
+      button.on('pointerdown', () => button.scale.set(0.96));
+      button.on('pointerup', () => {
+        button.scale.set(1);
+        startGame();
+      });
+      button.on('pointerupoutside', () => button.scale.set(1));
+      root.addChild(button);
+    }
+
+    function createCard(animal, index) {
+      const cardW = 78;
+      const cardH = 104;
+      const gapX = 10;
+      const gapY = 12;
+      const startX = 24;
+      const startY = 214;
+      const col = index % CARD_COLS;
+      const row = Math.floor(index / CARD_COLS);
+
+      const card = new PIXI.Container();
+      card.position.set(startX + col * (cardW + gapX) + cardW / 2, startY + row * (cardH + gapY) + cardH / 2);
+      card.eventMode = 'static';
+      card.cursor = 'pointer';
+      card.hitArea = new PIXI.RoundedRectangle(-cardW / 2, -cardH / 2, cardW, cardH, 16);
+      card.animal = animal;
+      card.isSelected = false;
+      card.isMatched = false;
+      card.deckId = deckId;
+
+      const shadow = roundedRect(-cardW / 2, -cardH / 2 + 5, cardW, cardH, 16, COLORS.shadow);
+      shadow.alpha = 0.23;
+      card.addChild(shadow);
+
+      const front = new PIXI.Container();
+      const frontBg = roundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 16, COLORS.cardFront, 0xE7D9CC, 2);
+      const animalText = makeText(animal, 42, COLORS.ink, '500', 'center');
+      animalText.anchor.set(0.5);
+      animalText.position.set(0, -10);
+      const animalLabel = makeText(ANIMAL_NAMES[animal] || '動物', 14, COLORS.ink, '800', 'center');
+      animalLabel.anchor.set(0.5);
+      animalLabel.position.set(0, 34);
+      front.addChild(frontBg, animalText, animalLabel);
+
+      const selection = new PIXI.Graphics()
+        .roundRect(-cardW / 2 - 3, -cardH / 2 - 3, cardW + 6, cardH + 6, 19)
+        .stroke({ color: COLORS.accent, width: 4 });
+      selection.visible = false;
+
+      card.front = front;
+      card.selection = selection;
+      card.addChild(front, selection);
+
+      card.on('pointertap', () => selectCard(card));
+      card.on('pointerover', () => {
+        if (!card.isMatched && !locked) {
+          tween(card.scale, 'x', 1.035, 100);
+          tween(card.scale, 'y', 1.035, 100);
+        }
+      });
+      card.on('pointerout', () => {
+        if (!card.isMatched && !card.isSelected) {
+          tween(card.scale, 'x', 1, 100);
+          tween(card.scale, 'y', 1, 100);
+        }
+      });
+
+      card.scale.set(0);
+      setTimeout(() => {
+        if (card.deckId !== deckId) return;
+        tween(card.scale, 'x', 1, 350, easeOutBack);
+        tween(card.scale, 'y', 1, 350, easeOutBack);
+      }, index * 35);
+
+      return card;
+    }
+
+    function setSelected(card, selected) {
+      card.isSelected = selected;
+      card.selection.visible = selected;
+      const targetScale = selected ? 1.08 : 1;
+      tween(card.scale, 'x', targetScale, 140, easeOutBack);
+      tween(card.scale, 'y', targetScale, 140, easeOutBack);
+    }
+
+    function selectCard(card) {
+      if (locked || card.isMatched || card.isSelected || card.deckId !== deckId) return;
+
+      if (!timerRunning) {
+        timerRunning = true;
+        startedAt = performance.now() - elapsed * 1000;
+      }
+
+      setSelected(card, true);
+
+      if (!firstCard) {
+        firstCard = card;
+        return;
+      }
+
+      secondCard = card;
+      locked = true;
+      moves += 1;
+      movesText.text = String(moves);
+      popText(movesText);
+
+      if (firstCard.animal === secondCard.animal) {
+        setTimeout(resolveMatch, 280);
+      } else {
+        setTimeout(resolveMismatch, 520);
+      }
+    }
+
+    function resolveMatch() {
+      if (!firstCard || !secondCard) return;
+
+      const matchedA = firstCard;
+      const matchedB = secondCard;
+
+      matchedA.isMatched = true;
+      matchedB.isMatched = true;
+      matchedA.isSelected = false;
+      matchedB.isSelected = false;
+      matchedA.selection.visible = false;
+      matchedB.selection.visible = false;
+      matchedA.eventMode = 'none';
+      matchedB.eventMode = 'none';
+
+      matchedPairs += 1;
+      firstCard = null;
+      secondCard = null;
+
+      disappearMatchedCard(matchedA);
+      disappearMatchedCard(matchedB, () => {
+        locked = false;
+        if (matchedPairs === ANIMALS.length) finishGame();
+      });
+    }
+
+    function disappearMatchedCard(card, onComplete = null) {
+      const glow = new PIXI.Graphics()
+        .roundRect(-39, -52, 78, 104, 16)
+        .fill({ color: COLORS.matched, alpha: 0.72 });
+      card.front.addChildAt(glow, 1);
+
+      tween(card.scale, 'x', 1.14, 120, easeOutCubic, () => {
+        tween(card.scale, 'x', 0, 260, easeInOutCubic);
+      });
+      tween(card.scale, 'y', 1.14, 120, easeOutCubic, () => {
+        tween(card.scale, 'y', 0, 260, easeInOutCubic);
+      });
+      tween(card, 'alpha', 0, 380, easeInOutCubic, () => {
+        card.visible = false;
+        if (onComplete) onComplete();
+      });
+    }
+
+    function resolveMismatch() {
+      if (!firstCard || !secondCard) return;
+      const a = firstCard;
+      const b = secondCard;
+      setSelected(a, false);
+      setSelected(b, false);
+      firstCard = null;
+      secondCard = null;
+      locked = false;
+    }
+
+    function popText(textObject) {
+      tween(textObject.scale, 'x', 1.25, 100, easeOutCubic, () => tween(textObject.scale, 'x', 1, 150, easeOutBack));
+      tween(textObject.scale, 'y', 1.25, 100, easeOutCubic, () => tween(textObject.scale, 'y', 1, 150, easeOutBack));
+    }
+
+    function finishGame() {
+      timerRunning = false;
+      elapsed = Math.floor((performance.now() - startedAt) / 1000);
+      timeText.text = formatTime(elapsed);
+
+      const best = getBest();
+      const isNewBest = best === 0 || moves < best;
+      if (isNewBest) {
+        localStorage.setItem('animalMatchBest', String(moves));
+        bestText.text = String(moves);
+        popText(bestText);
+      }
+
+      setTimeout(() => showCompletion(isNewBest), 500);
+    }
+
+    function showCompletion(isNewBest) {
+      overlay = new PIXI.Container();
+      overlay.alpha = 0;
+      overlay.eventMode = 'static';
+      overlay.hitArea = new PIXI.Rectangle(0, 0, DESIGN_W, DESIGN_H);
+
+      const dim = new PIXI.Graphics().rect(0, 0, DESIGN_W, DESIGN_H).fill({ color: COLORS.overlay, alpha: 0.5 });
+      overlay.addChild(dim);
+
+      const panel = new PIXI.Container();
+      panel.position.set(DESIGN_W / 2, DESIGN_H / 2);
+      panel.scale.set(0.72);
+      const panelBg = roundedRect(-154, -185, 308, 370, 30, COLORS.panel);
+      panel.addChild(panelBg);
+
+      const trophy = makeText('🏆', 66, COLORS.ink, '500', 'center');
+      trophy.anchor.set(0.5);
+      trophy.position.set(0, -120);
+      panel.addChild(trophy);
+
+      const title = makeText('全部配對完成！', 27, COLORS.ink, '800', 'center');
+      title.anchor.set(0.5);
+      title.position.set(0, -55);
+      panel.addChild(title);
+
+      const result = makeText(`${moves} 步 · ${formatTime(elapsed)}`, 19, COLORS.muted, '700', 'center');
+      result.anchor.set(0.5);
+      result.position.set(0, -12);
+      panel.addChild(result);
+
+      const message = makeText(isNewBest ? '🎉 創下新的最佳紀錄！' : '記憶力超棒，再挑戰一次吧！', 15, isNewBest ? COLORS.accentDark : COLORS.muted, '700', 'center');
+      message.anchor.set(0.5);
+      message.position.set(0, 25);
+      panel.addChild(message);
+
+      const button = new PIXI.Container();
+      button.position.set(0, 105);
+      button.eventMode = 'static';
+      button.cursor = 'pointer';
+      button.hitArea = new PIXI.RoundedRectangle(-105, -28, 210, 56, 28);
+      const btnShadow = roundedRect(-105, -23, 210, 56, 28, COLORS.accentDark);
+      const btnFace = roundedRect(-105, -28, 210, 56, 28, COLORS.accent);
+      const btnText = makeText('再玩一次', 19, 0xFFFFFF, '800', 'center');
+      btnText.anchor.set(0.5);
+      button.addChild(btnShadow, btnFace, btnText);
+      button.on('pointerdown', () => button.scale.set(0.96));
+      button.on('pointerup', () => startGame());
+      button.on('pointerupoutside', () => button.scale.set(1));
+      panel.addChild(button);
+
+      overlay.addChild(panel);
+      root.addChild(overlay);
+      tween(overlay, 'alpha', 1, 220);
+      tween(panel.scale, 'x', 1, 360, easeOutBack);
+      tween(panel.scale, 'y', 1, 360, easeOutBack);
+    }
+
+    function startGame() {
+      deckId += 1;
+      tweens.length = 0;
+      firstCard = null;
+      secondCard = null;
+      locked = false;
+      moves = 0;
+      matchedPairs = 0;
+      elapsed = 0;
+      timerRunning = false;
+      movesText.text = '0';
+      timeText.text = '00:00';
+      bestText.text = getBestDisplay();
+
+      if (overlay) {
+        overlay.destroy({ children: true });
+        overlay = null;
+      }
+
+      cardsLayer.removeChildren().forEach(child => child.destroy({ children: true }));
+      ANIMALS = shuffle(ANIMAL_POOL).slice(0, PAIRS_PER_GAME).map(pair => pair[0]);
+      const deck = shuffle([...ANIMALS, ...ANIMALS]);
+      deck.forEach((animal, index) => cardsLayer.addChild(createCard(animal, index)));
+    }
+
+    async function init() {
+      await app.init({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        backgroundColor: COLORS.background,
+        antialias: true,
+        resolution: Math.min(window.devicePixelRatio || 1, 2),
+        autoDensity: true,
+        preference: 'webgl'
+      });
+
+      document.getElementById('game').appendChild(app.canvas);
+      root = new PIXI.Container();
+      app.stage.addChild(root);
+
+      buildBackground();
+      buildHeader();
+      cardsLayer = new PIXI.Container();
+      root.addChild(cardsLayer);
+      buildRestartButton();
+      startGame();
+      resize();
+
+      window.addEventListener('resize', resize, { passive: true });
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && timerRunning) startedAt = performance.now() - elapsed * 1000;
+      });
+
+      app.ticker.add(ticker => {
+        const deltaMs = ticker.deltaMS;
+
+        for (let i = tweens.length - 1; i >= 0; i--) {
+          const tw = tweens[i];
+          tw.elapsed += deltaMs;
+          const p = Math.min(1, tw.elapsed / tw.duration);
+          tw.target[tw.property] = tw.from + (tw.to - tw.from) * tw.ease(p);
+          if (p >= 1) {
+            tweens.splice(i, 1);
+            if (tw.onComplete) tw.onComplete();
+          }
+        }
+
+        if (timerRunning) {
+          elapsed = Math.floor((performance.now() - startedAt) / 1000);
+          timeText.text = formatTime(elapsed);
+        }
+      });
+    }
+
+    init().catch(error => {
+      console.error(error);
+      document.body.innerHTML = '<div style="padding:24px;font-family:sans-serif">遊戲載入失敗，請確認網路連線後重新整理。</div>';
+    });
+  })();
+  </script>
+<script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
