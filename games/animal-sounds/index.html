@@ -2,229 +2,163 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#bce9ff">
-  <title>動物聲音島｜是誰在叫呀？</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#8eddf1">
+  <meta name="description" content="點點可愛的立體動物，聽聽牠們怎麼叫。">
+  <title>動物聲音島｜點點動物聽聲音</title>
   <style>
-    :root { --ink:#273548; --cream:#fff9e9; }
-    * { box-sizing:border-box; }
-    html,body { margin:0; min-height:100%; }
-    body { color:var(--ink); background:#bfe9ff; font-family:Arial,"Noto Sans TC",sans-serif; }
-    button { font:inherit; }
-    .game-shell { position:relative; min-height:100svh; overflow:hidden; padding:24px clamp(18px,4vw,64px) 18px; background:linear-gradient(#bce9ff 0 63%,#79c35a 63% 100%); }
-    .game-shell::after { content:""; position:absolute; left:-5%; right:-5%; bottom:-90px; height:220px; border-radius:50% 50% 0 0; background:#65ae4c; }
-    .sun { position:absolute; top:72px; right:7%; width:110px; height:110px; border-radius:50%; background:#ffe37b; box-shadow:0 0 0 18px #ffe37b3b; }
-    .cloud { position:absolute; width:150px; height:42px; border-radius:50px; background:#fff9; }
-    .cloud::before,.cloud::after { content:""; position:absolute; bottom:0; border-radius:50%; background:inherit; }
-    .cloud::before { left:25px; width:68px; height:68px; }
-    .cloud::after { right:18px; width:84px; height:84px; }
-    .cloud-one { top:13%; left:4%; }
-    .cloud-two { top:24%; right:12%; transform:scale(.65); opacity:.8; }
-    .topbar { position:relative; z-index:3; display:flex; justify-content:space-between; align-items:center; max-width:1180px; margin:0 auto 18px; }
-    .brand { display:flex; align-items:center; gap:10px; font-size:clamp(18px,2vw,26px); font-weight:900; letter-spacing:.03em; }
-    .brand b { display:grid; place-items:center; width:42px; height:42px; border-radius:50%; background:#ff866e; color:white; transform:rotate(-8deg); box-shadow:0 5px 0 #d95c4d; }
-    .stars { display:flex; align-items:center; gap:7px; min-width:92px; padding:10px 18px; border-radius:99px; background:#fffdf4; font-size:20px; font-weight:900; box-shadow:0 5px 0 #e3bc56; }
-    .stars b { color:#ffc928; font-size:26px; text-shadow:0 2px 0 #d49c1b; }
-    .game-card { position:relative; z-index:2; max-width:1180px; min-height:min(760px,calc(100svh - 125px)); margin:auto; overflow:hidden; border:5px solid #fff9; border-radius:38px; background:#fff9e9e8; box-shadow:0 18px 0 #3c8c4d55,0 28px 60px #315e7140; backdrop-filter:blur(10px); }
-    .copy { position:absolute; z-index:4; left:clamp(24px,4vw,56px); top:35px; }
-    .eyebrow { margin:0 0 4px; color:#e26b52; font-weight:900; letter-spacing:.13em; }
-    h1 { margin:0; font-size:clamp(34px,4.2vw,62px); line-height:1.04; letter-spacing:-.05em; }
-    .message { display:inline-block; margin:13px 0 0; padding:9px 16px; border-radius:99px; background:white; color:#536477; font-size:clamp(15px,1.7vw,20px); font-weight:800; box-shadow:0 4px 12px #50677918; }
-    .message.correct { color:#23763b; background:#e5ffd7; animation:pop .35s ease; }
-    .sound { position:absolute; z-index:6; top:38px; right:clamp(24px,4vw,56px); display:grid; place-items:center; width:140px; height:140px; border:0; border-radius:50%; background:#ff7d66; color:white; font-weight:900; cursor:pointer; box-shadow:0 10px 0 #cc5948,0 16px 28px #96372f35; transition:.15s; }
-    .sound:hover { transform:translateY(-3px); }
-    .sound:active { transform:translateY(7px); box-shadow:0 3px 0 #cc5948; }
-    .sound:focus-visible,.choices button:focus-visible { outline:5px solid #2c6cdf; outline-offset:4px; }
-    .speaker { font-size:45px; line-height:1; }
-    .sound small { font-size:16px; font-weight:900; }
-    .sound.playing .speaker { animation:wiggle .6s ease infinite; }
-    .ripple { position:absolute; inset:-10px; border:4px solid #ff9a86; border-radius:50%; opacity:0; pointer-events:none; }
-    .sound.playing .ripple { animation:ripple 1.3s ease-out infinite; }
-    .scene-wrap { position:absolute; inset:165px 0 0; }
-    #scene { position:absolute; inset:0 0 70px; cursor:pointer; touch-action:manipulation; }
-    #scene canvas { display:block; width:100%; height:100%; }
-    .choices { position:absolute; z-index:5; left:50%; bottom:20px; display:grid; grid-template-columns:repeat(4,minmax(100px,150px)); gap:clamp(9px,2vw,18px); transform:translateX(-50%); }
-    .choices button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:56px; border:3px solid white; border-radius:18px; background:#ffffffea; color:var(--ink); font-weight:900; cursor:pointer; box-shadow:0 6px 0 #bfd1d4; transition:.15s; }
-    .choices button:hover { transform:translateY(-4px); }
-    .choices button:active { transform:translateY(4px); box-shadow:0 2px 0 #bfd1d4; }
-    .choices span { font-size:25px; }
-    .note { position:relative; z-index:3; margin:22px auto 0; text-align:center; color:#f3ffeb; font-size:14px; font-weight:800; }
-    @keyframes ripple { from { transform:scale(.88); opacity:.8; } to { transform:scale(1.35); opacity:0; } }
-    @keyframes wiggle { 0%,100% { transform:rotate(-8deg); } 50% { transform:rotate(10deg) scale(1.08); } }
-    @keyframes pop { 50% { transform:scale(1.08) rotate(-1deg); } }
-    @media (max-width:700px) {
-      .game-shell { padding:14px 10px 8px; }
-      .topbar { margin-bottom:10px; padding:0 6px; }
-      .brand b { width:34px; height:34px; }
-      .stars { min-width:76px; padding:7px 13px; }
-      .game-card { min-height:calc(100svh - 94px); border-radius:28px; }
-      .copy { top:24px; left:20px; right:20px; text-align:center; }
-      .eyebrow { font-size:12px; }
-      h1 { font-size:36px; }
-      .message { margin-top:9px; font-size:14px; }
-      .sound { top:157px; right:50%; width:105px; height:105px; transform:translateX(50%); }
-      .sound:hover { transform:translateX(50%) translateY(-3px); }
-      .sound:active { transform:translateX(50%) translateY(6px); }
-      .speaker { font-size:34px; }
-      .scene-wrap { inset:255px 0 0; }
-      #scene { bottom:142px; }
-      .choices { bottom:14px; width:calc(100% - 24px); grid-template-columns:repeat(2,1fr); gap:9px; }
-      .choices button { min-height:52px; }
-      .note { display:none; }
-    }
-    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.001ms!important; animation-iteration-count:1!important; } }
+    :root{--ink:#29445a;--sky:#8eddf1;--cream:#fff9e9;--orange:#ff826b}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;min-height:100%;margin:0;overflow-x:hidden}
+    body{background:linear-gradient(#8eddf1 0 44%,#83ce67 44% 100%);color:var(--ink);font-family:Arial,"Noto Sans TC",sans-serif;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+    button{font:inherit;color:inherit;touch-action:manipulation}
+    .island{position:relative;min-height:100svh;max-width:760px;margin:auto;padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));overflow:hidden}
+    .sun{position:absolute;right:24px;top:70px;width:68px;height:68px;border-radius:50%;background:#ffe66e;box-shadow:0 0 0 12px #ffe66e44}
+    .cloud{position:absolute;width:105px;height:29px;border-radius:40px;background:#ffffffaa}
+    .cloud::before,.cloud::after{content:"";position:absolute;bottom:0;border-radius:50%;background:inherit}
+    .cloud::before{left:18px;width:43px;height:43px}.cloud::after{right:12px;width:55px;height:55px}
+    .c1{left:-34px;top:104px;transform:scale(.72)}.c2{right:-29px;top:178px;transform:scale(.52)}
+    header{position:relative;z-index:4;text-align:center}
+    .brand{display:inline-flex;align-items:center;gap:8px;margin:0;padding:7px 15px;border:4px solid white;border-radius:19px;background:#ff826b;color:white;font-size:clamp(23px,7vw,34px);font-weight:1000;line-height:1;box-shadow:0 6px 0 #ca5648;text-shadow:0 2px #ae463b}
+    .brand i{font-style:normal;animation:music 1.2s ease-in-out infinite alternate}
+    .guide{display:block;width:max-content;max-width:92%;margin:11px auto 0;padding:7px 14px;border-radius:99px;background:#ffffffdf;color:#347c91;font-size:14px;font-weight:1000;box-shadow:0 4px 0 #57abc0}
+    .stage{position:relative;z-index:2;height:clamp(280px,43svh,405px);margin:11px 0 8px;border:4px solid #ffffffbb;border-radius:32px;background:linear-gradient(#b9eff9aa 0 64%,#79c85eaa 64%);box-shadow:0 10px 0 #3d934f55;overflow:hidden}
+    .stage::after{content:"";position:absolute;z-index:0;left:-10%;right:-10%;bottom:-48px;height:135px;border-radius:50% 50% 0 0;background:#69b953}
+    #scene{position:absolute;z-index:1;inset:0;cursor:pointer;touch-action:manipulation}
+    #scene canvas{display:block;width:100%;height:100%}
+    .animal-name{position:absolute;z-index:4;left:14px;top:14px;min-width:90px;padding:8px 14px;border-radius:16px;background:#fffdf0;color:#38566b;font-size:20px;font-weight:1000;text-align:center;box-shadow:0 5px 0 #d9c98d}
+    .sound-button{position:absolute;z-index:5;right:14px;top:14px;display:grid;place-items:center;width:82px;height:82px;padding:0;border:4px solid white;border-radius:50%;background:#ff806b;color:white;cursor:pointer;box-shadow:0 7px 0 #c95347}
+    .sound-button span{font-size:36px;line-height:1}.sound-button small{font-size:11px;font-weight:1000}
+    .sound-button:active{transform:translateY(6px);box-shadow:0 1px 0 #c95347}
+    .sound-button.playing{animation:pop .42s ease}.sound-button.playing span{animation:wiggle .32s ease 2}
+    .speech{position:absolute;z-index:5;left:50%;bottom:13px;min-width:120px;max-width:72%;padding:9px 17px;border:4px solid white;border-radius:23px;background:#fff8dd;color:#e16751;font-size:22px;font-weight:1000;text-align:center;box-shadow:0 5px 0 #d9b85d;transform:translateX(-50%);opacity:0;transition:.16s}
+    .speech.show{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1.04)}
+    .animals{position:relative;z-index:4;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .animal-button{min-width:0;min-height:72px;padding:6px 3px;border:3px solid white;border-radius:18px;background:var(--card);font-weight:1000;cursor:pointer;box-shadow:0 5px 0 var(--shadow);transition:.12s}
+    .animal-button span{display:block;font-size:31px;line-height:1.05}.animal-button small{display:block;margin-top:3px;font-size:13px}
+    .animal-button:active,.animal-button.active{transform:translateY(4px);box-shadow:0 1px 0 var(--shadow)}
+    .animal-button.active{outline:4px solid #ff765e;outline-offset:1px}
+    .animal-button:focus-visible,.sound-button:focus-visible{outline:5px solid #255fd0;outline-offset:3px}
+    .tip{position:relative;z-index:3;margin:10px 0 0;text-align:center;color:#f5ffed;font-size:12px;font-weight:900;text-shadow:0 2px #438837}
+    @keyframes music{to{transform:rotate(12deg) scale(1.15)}}@keyframes wiggle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(10deg) scale(1.12)}}@keyframes pop{50%{transform:scale(1.12)}}
+    @media(max-height:700px){.island{padding-top:7px}.brand{font-size:22px}.guide{margin-top:7px;padding-block:5px}.stage{height:325px;margin-top:7px}.animal-button{min-height:60px}.animal-button span{font-size:27px}.tip{display:none}}
+    @media(min-width:700px){.animals{gap:12px}.animal-button{min-height:82px}.animal-button span{font-size:38px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
   </style>
 </head>
 <body>
-  <main class="game-shell">
-    <div class="sun" aria-hidden="true"></div>
-    <div class="cloud cloud-one" aria-hidden="true"></div>
-    <div class="cloud cloud-two" aria-hidden="true"></div>
-    <header class="topbar">
-      <div class="brand"><b>♪</b>動物聲音島</div>
-      <div class="stars" aria-label="獲得 0 顆星"><b>★</b>× <span id="star-count">0</span></div>
+  <main class="island">
+    <div class="sun" aria-hidden="true"></div><div class="cloud c1" aria-hidden="true"></div><div class="cloud c2" aria-hidden="true"></div>
+    <header>
+      <h1 class="brand"><i>♪</i>動物聲音島</h1>
+      <p class="guide">點動物，聽聽牠怎麼叫！</p>
     </header>
-    <section class="game-card" aria-labelledby="title">
-      <div class="copy">
-        <p class="eyebrow">聽聲音・找動物</p>
-        <h1 id="title">是誰在叫呀？</h1>
-        <p id="message" class="message" role="status" aria-live="polite">按下大喇叭，聽聽是誰的聲音</p>
-      </div>
-      <button id="sound-button" class="sound" aria-label="播放動物叫聲">
-        <i class="ripple" aria-hidden="true"></i>
-        <span class="speaker" aria-hidden="true">🔊</span>
-        <small>聽聽看</small>
-      </button>
-      <div class="scene-wrap">
-        <div id="scene" role="img" aria-label="四隻可愛的立體動物"></div>
-        <div class="choices" aria-label="選擇動物">
-          <button data-animal="dog"><span>🐶</span>小狗</button>
-          <button data-animal="cat"><span>🐱</span>小貓</button>
-          <button data-animal="cow"><span>🐮</span>乳牛</button>
-          <button data-animal="duck"><span>🐤</span>小鴨</button>
-        </div>
-      </div>
+    <section class="stage" aria-label="立體動物聲音舞台">
+      <div id="scene" role="button" tabindex="0" aria-label="點擊立體小狗播放叫聲"></div>
+      <div class="animal-name" aria-live="polite">🐶 小狗</div>
+      <button class="sound-button" aria-label="播放小狗叫聲"><span aria-hidden="true">🔊</span><small>聽聲音</small></button>
+      <div class="speech" role="status" aria-live="polite">汪汪汪！</div>
     </section>
-    <p class="note">給小朋友：按喇叭聽聲音，再點一隻動物</p>
+    <nav class="animals" aria-label="選擇動物">
+      <button class="animal-button active" data-animal="dog" style="--card:#ffd6ae;--shadow:#d99a5f"><span>🐶</span><small>小狗</small></button>
+      <button class="animal-button" data-animal="cat" style="--card:#d9ddeb;--shadow:#9da4bd"><span>🐱</span><small>小貓</small></button>
+      <button class="animal-button" data-animal="cow" style="--card:#f1eee7;--shadow:#aaa69e"><span>🐮</span><small>乳牛</small></button>
+      <button class="animal-button" data-animal="duck" style="--card:#ffe797;--shadow:#d5ae3e"><span>🐤</span><small>小鴨</small></button>
+      <button class="animal-button" data-animal="sheep" style="--card:#f4e9d8;--shadow:#c2ad91"><span>🐑</span><small>小羊</small></button>
+      <button class="animal-button" data-animal="pig" style="--card:#ffcbd7;--shadow:#d58b9d"><span>🐷</span><small>小豬</small></button>
+      <button class="animal-button" data-animal="frog" style="--card:#c4ed9c;--shadow:#87bd56"><span>🐸</span><small>青蛙</small></button>
+      <button class="animal-button" data-animal="rooster" style="--card:#ffcab5;--shadow:#d9896c"><span>🐓</span><small>公雞</small></button>
+    </nav>
+    <p class="tip">可以點大動物、喇叭，或下方任一動物按鈕</p>
   </main>
 
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js';
 
-    const animals = {
-      dog:{name:'小狗',sound:'汪汪！'}, cat:{name:'小貓',sound:'喵喵～'},
-      cow:{name:'乳牛',sound:'哞～～'}, duck:{name:'小鴨',sound:'呱呱！'}
+    const animals={
+      dog:{name:'小狗',emoji:'🐶',sound:'汪汪汪！',color:0xd98d4a,pitch:1.05,rate:.72},
+      cat:{name:'小貓',emoji:'🐱',sound:'喵～喵～',color:0xa8afbd,pitch:1.35,rate:.65},
+      cow:{name:'乳牛',emoji:'🐮',sound:'哞～～',color:0xf7f5ee,pitch:.55,rate:.5},
+      duck:{name:'小鴨',emoji:'🐤',sound:'呱呱呱！',color:0xf6c945,pitch:1.55,rate:.82},
+      sheep:{name:'小羊',emoji:'🐑',sound:'咩～～咩～～',color:0xf4eee1,pitch:1.15,rate:.58},
+      pig:{name:'小豬',emoji:'🐷',sound:'齁齁！齁齁！',color:0xf3a3ad,pitch:.82,rate:.72},
+      frog:{name:'青蛙',emoji:'🐸',sound:'呱！呱！呱！',color:0x6fbd52,pitch:.9,rate:.82},
+      rooster:{name:'公雞',emoji:'🐓',sound:'咕咕咕！',color:0xf2c98b,pitch:1.25,rate:.7}
     };
-    const ids = Object.keys(animals);
-    let target = 'dog', stars = 0, locked = false, correct = false;
-    const message = document.querySelector('#message');
-    const soundButton = document.querySelector('#sound-button');
+    let current='dog',speakingTimer;
+    const mount=document.querySelector('#scene'),nameBox=document.querySelector('.animal-name'),speech=document.querySelector('.speech'),soundButton=document.querySelector('.sound-button');
+    const buttons=[...document.querySelectorAll('[data-animal]')];
 
-    function say(id) {
+    function speak(id){
+      current=id;
+      const animal=animals[id];
+      buttons.forEach(button=>button.classList.toggle('active',button.dataset.animal===id));
+      nameBox.textContent=animal.emoji+' '+animal.name;
+      speech.textContent=animal.sound;speech.classList.add('show');
+      mount.setAttribute('aria-label',`點擊立體${animal.name}播放叫聲`);
+      soundButton.setAttribute('aria-label',`播放${animal.name}叫聲`);
+      soundButton.classList.remove('playing');void soundButton.offsetWidth;soundButton.classList.add('playing');
+      showAnimal(id);
       speechSynthesis.cancel();
-      const voice = new SpeechSynthesisUtterance(animals[id].sound);
-      voice.lang = 'zh-TW'; voice.rate = .68;
-      voice.pitch = id === 'cow' ? .55 : id === 'duck' ? 1.45 : 1.05;
+      const voice=new SpeechSynthesisUtterance(animal.sound);
+      voice.lang='zh-TW';voice.rate=animal.rate;voice.pitch=animal.pitch;voice.volume=1;
       speechSynthesis.speak(voice);
+      clearTimeout(speakingTimer);speakingTimer=setTimeout(()=>{speech.classList.remove('show');soundButton.classList.remove('playing')},1500);
     }
-    function setMessage(text,isCorrect=false) {
-      message.textContent = text;
-      message.classList.toggle('correct',isCorrect);
-    }
-    soundButton.addEventListener('click',()=>{
-      soundButton.classList.add('playing');
-      soundButton.querySelector('small').textContent='再聽一次';
-      setMessage('是誰在叫呢？點點看！');
-      say(target);
-    });
-    function choose(id) {
-      if (locked) return;
-      if (id === target) {
-        locked = true; correct = true; stars++;
-        document.querySelector('#star-count').textContent=stars;
-        document.querySelector('.stars').setAttribute('aria-label',`獲得 ${stars} 顆星`);
-        setMessage('答對了！你好棒！',true);
-        speechSynthesis.cancel();
-        const happy = new SpeechSynthesisUtterance('答對了！你好棒！');
-        happy.lang='zh-TW'; happy.rate=.88; speechSynthesis.speak(happy);
-        setTimeout(()=>{
-          const choices=ids.filter(item=>item!==target);
-          target=choices[Math.floor(Math.random()*choices.length)];
-          correct=false; locked=false;
-          soundButton.classList.remove('playing');
-          soundButton.querySelector('small').textContent='聽聽看';
-          setMessage('下一題，按大喇叭聽聽看');
-        },1800);
-      } else {
-        setMessage('再聽一次，你一定找得到！');
-        say(target);
-      }
-    }
-    document.querySelectorAll('[data-animal]').forEach(button=>button.addEventListener('click',()=>choose(button.dataset.animal)));
+    buttons.forEach(button=>button.addEventListener('click',()=>speak(button.dataset.animal)));
+    soundButton.addEventListener('click',()=>speak(current));
+    mount.addEventListener('click',()=>speak(current));
+    mount.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();speak(current)}});
 
-    const material=color=>new THREE.MeshStandardMaterial({color,roughness:.78});
-    function sphere(color,scale,position) {
-      const mesh=new THREE.Mesh(new THREE.SphereGeometry(.62,24,18),material(color));
-      mesh.scale.set(...scale); mesh.position.set(...position); mesh.castShadow=true; return mesh;
+    const mat=color=>new THREE.MeshStandardMaterial({color,roughness:.76});
+    function sphere(color,scale,position){
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(.62,28,20),mat(color));
+      mesh.scale.set(...scale);mesh.position.set(...position);mesh.castShadow=true;return mesh;
     }
-    function eyes(group,y=1.2,z=.55,spread=.24) {
-      [-spread,spread].forEach(x=>{
-        group.add(sphere(0x222a36,[.1,.14,.08],[x,y,z]));
-        group.add(sphere(0xffffff,[.025,.035,.02],[x-.025,y+.035,z+.05]));
-      });
+    function cone(color,position,rotationZ=0,scale=[1,1,1]){
+      const mesh=new THREE.Mesh(new THREE.ConeGeometry(.3,.7,5),mat(color));
+      mesh.position.set(...position);mesh.rotation.z=rotationZ;mesh.scale.set(...scale);mesh.castShadow=true;return mesh;
     }
-    function cone(color,position,rotationZ) {
-      const mesh=new THREE.Mesh(new THREE.ConeGeometry(.3,.7,4),material(color));
-      mesh.position.set(...position); mesh.rotation.z=rotationZ; mesh.castShadow=true; return mesh;
+    function eyes(group,y=1.25,z=.55,spread=.24,size=.1){
+      [-spread,spread].forEach(x=>{group.add(sphere(0x24303c,[size,size*1.3,.08],[x,y,z]));group.add(sphere(0xffffff,[.025,.032,.018],[x-.025,y+.035,z+.05]))});
     }
-    function makeAnimal(id) {
-      const group=new THREE.Group(); group.userData.id=id;
-      const color={dog:0xd98d4a,cat:0x9fa9b7,cow:0xf7f5ee,duck:0xf6c945}[id];
-      group.add(sphere(color,[.82,.78,.68],[0,.55,0]));
-      group.add(sphere(color,[.74,.72,.68],[0,1.18,.03]));
-      eyes(group,1.3,.48,id==='duck'?.21:.23);
-      if(id==='dog') {
-        group.add(sphere(0x9e5f31,[.26,.66,.18],[-.58,1.18,0]),sphere(0x9e5f31,[.26,.66,.18],[.58,1.18,0]),sphere(0x6f4128,[.18,.14,.13],[0,1.05,.62]));
-      } else if(id==='cat') {
-        group.add(cone(0x7f8a99,[-.43,1.72,0],-.12),cone(0x7f8a99,[.43,1.72,0],.12),sphere(0xe7848e,[.11,.08,.08],[0,1.08,.61]));
-      } else if(id==='cow') {
-        group.add(sphere(0x4b4a50,[.28,.25,.08],[-.32,1.4,.43]),sphere(0x4b4a50,[.2,.2,.07],[.39,.97,.52]),cone(0xe7c58d,[-.58,1.64,0],-.85),cone(0xe7c58d,[.58,1.64,0],.85),sphere(0xe9a8aa,[.42,.22,.18],[0,.98,.57]));
-      } else {
-        const beak=new THREE.Mesh(new THREE.ConeGeometry(.23,.7,4),material(0xf28b32));
-        beak.rotation.x=Math.PI/2; beak.position.set(0,1.06,.78); group.add(beak);
-        group.add(sphere(0xf0b62f,[.34,.42,.18],[-.61,.56,0]),sphere(0xf0b62f,[.34,.42,.18],[.61,.56,0]));
-      }
-      const hit=new THREE.Mesh(new THREE.SphereGeometry(1.05,12,10),new THREE.MeshBasicMaterial({transparent:true,opacity:0}));
-      hit.position.y=.9; hit.userData.id=id; group.add(hit); return group;
+    function baseAnimal(id){
+      const data=animals[id],group=new THREE.Group();group.userData.id=id;
+      group.add(sphere(data.color,[.9,.8,.72],[0,.48,0]),sphere(data.color,[.76,.74,.7],[0,1.2,.04]));
+      [-.43,.43].forEach(x=>group.add(sphere(data.color,[.22,.55,.22],[x,.02,0])));
+      return group;
+    }
+    function makeAnimal(id){
+      const g=baseAnimal(id);
+      if(id==='dog'){eyes(g);g.add(sphere(0x9e5f31,[.27,.68,.17],[-.58,1.18,0]),sphere(0x9e5f31,[.27,.68,.17],[.58,1.18,0]),sphere(0x6f4128,[.18,.14,.13],[0,1.03,.64]))}
+      if(id==='cat'){eyes(g);g.add(cone(0x838d9c,[-.43,1.74,0],-.12),cone(0x838d9c,[.43,1.74,0],.12),sphere(0xe7848e,[.11,.08,.08],[0,1.06,.64]))}
+      if(id==='cow'){eyes(g);g.add(sphere(0x44454b,[.3,.26,.08],[-.32,1.42,.45]),sphere(0x44454b,[.22,.2,.07],[.39,1.01,.54]),cone(0xe7c58d,[-.58,1.65,0],-.85),cone(0xe7c58d,[.58,1.65,0],.85),sphere(0xe9a8aa,[.43,.22,.18],[0,.98,.59]))}
+      if(id==='duck'){eyes(g,1.31,.55,.2,.08);const beak=cone(0xf28b32,[0,1.08,.78],0,[1.05,1.3,.8]);beak.rotation.x=Math.PI/2;g.add(beak,sphere(0xf0b62f,[.34,.43,.18],[-.67,.52,0]),sphere(0xf0b62f,[.34,.43,.18],[.67,.52,0]))}
+      if(id==='sheep'){for(let i=0;i<9;i++){const a=i/9*Math.PI*2;g.add(sphere(0xffffff,[.34,.34,.28],[Math.cos(a)*.5,1.45+Math.sin(a)*.38,-.08]))}eyes(g,1.23,.62,.22,.09);g.add(sphere(0x8b715f,[.18,.44,.12],[-.62,1.3,.05]),sphere(0x8b715f,[.18,.44,.12],[.62,1.3,.05]))}
+      if(id==='pig'){eyes(g,1.34,.54,.24,.085);g.add(cone(0xf28f9c,[-.49,1.68,0],-.45,[.8,.75,.8]),cone(0xf28f9c,[.49,1.68,0],.45,[.8,.75,.8]),sphere(0xe98291,[.32,.22,.16],[0,1.03,.62]),sphere(0x9b4e5c,[.045,.07,.04],[-.11,1.04,.78]),sphere(0x9b4e5c,[.045,.07,.04],[.11,1.04,.78]))}
+      if(id==='frog'){g.children[1].scale.set(.85,.62,.7);g.add(sphere(0x88d26a,[.25,.28,.22],[-.35,1.6,.12]),sphere(0x88d26a,[.25,.28,.22],[.35,1.6,.12]));eyes(g,1.63,.22,.35,.105);g.add(sphere(0xeef4df,[.5,.12,.08],[0,1.13,.63]))}
+      if(id==='rooster'){eyes(g,1.34,.54,.22,.08);const beak=cone(0xf08b32,[0,1.1,.76],0,[.8,1,.7]);beak.rotation.x=Math.PI/2;g.add(beak,sphere(0xe85043,[.19,.28,.15],[0,.88,.56]),sphere(0xe85043,[.18,.3,.13],[-.22,1.82,0]),sphere(0xe85043,[.2,.34,.13],[0,1.9,0]),sphere(0xe85043,[.18,.3,.13],[.22,1.82,0]),sphere(0xf7e6cf,[.32,.52,.18],[-.68,.62,0]),sphere(0xf7e6cf,[.32,.52,.18],[.68,.62,0]))}
+      return g;
     }
 
-    const mount=document.querySelector('#scene');
-    const scene=new THREE.Scene(); scene.fog=new THREE.Fog(0xc9edff,9,18);
-    const camera=new THREE.PerspectiveCamera(38,1,.1,50); camera.position.set(0,3.4,10.5); camera.lookAt(0,.85,0);
+    const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(38,1,.1,40);
+    camera.position.set(0,2.7,7.1);camera.lookAt(0,.85,0);
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.shadowMap.enabled=true; renderer.outputColorSpace=THREE.SRGBColorSpace; mount.appendChild(renderer.domElement);
-    scene.add(new THREE.HemisphereLight(0xffffff,0x7caa61,2.2));
-    const sunLight=new THREE.DirectionalLight(0xfff4ce,3.1); sunLight.position.set(-4,8,6); sunLight.castShadow=true; scene.add(sunLight);
-    const ground=new THREE.Mesh(new THREE.CylinderGeometry(7,7.5,.45,48),material(0x8ed06d)); ground.position.y=-.35; ground.receiveShadow=true; scene.add(ground);
-    const groups=ids.map((id,index)=>{ const animal=makeAnimal(id); animal.position.x=(index-1.5)*2.25; scene.add(animal); return animal; });
-    function resize(){ const w=mount.clientWidth,h=mount.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
-    new ResizeObserver(resize).observe(mount); resize();
-    const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
-    renderer.domElement.addEventListener('pointerup',event=>{
-      const rect=renderer.domElement.getBoundingClientRect();
-      pointer.x=((event.clientX-rect.left)/rect.width)*2-1; pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
-      raycaster.setFromCamera(pointer,camera); const hit=raycaster.intersectObjects(groups,true)[0]; if(!hit)return;
-      let object=hit.object; while(object&&!object.userData.id)object=object.parent; if(object?.userData.id)choose(object.userData.id);
-    });
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;mount.appendChild(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff,0x69a64f,2.5));
+    const light=new THREE.DirectionalLight(0xfff2cc,3);light.position.set(-4,7,5);light.castShadow=true;scene.add(light);
+    const ground=new THREE.Mesh(new THREE.CylinderGeometry(3.1,3.5,.35,42),mat(0x86ce67));ground.position.y=-.35;ground.receiveShadow=true;scene.add(ground);
+    let model=makeAnimal(current);scene.add(model);
+    function showAnimal(id){scene.remove(model);model=makeAnimal(id);model.scale.set(.01,.01,.01);scene.add(model)}
+    function resize(){const w=mount.clientWidth,h=mount.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+    new ResizeObserver(resize).observe(mount);resize();
     const clock=new THREE.Clock();
-    function animate(){ requestAnimationFrame(animate); const time=clock.getElapsedTime(); groups.forEach((animal,index)=>{
-      const winner=correct&&animal.userData.id===target;
-      animal.position.y=Math.sin(time*1.8+index*.8)*.035+(winner?Math.abs(Math.sin(time*7))*.48:0);
-      animal.rotation.y=Math.sin(time*.8+index)*.035;
-    }); renderer.render(scene,camera); }
+    function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime(),s=model.scale.x;model.scale.setScalar(Math.min(1,s+.075));model.position.y=Math.sin(t*2.2)*.04;model.rotation.y=Math.sin(t*.85)*.12;renderer.render(scene,camera)}
     animate();
+    document.addEventListener('dblclick',event=>event.preventDefault(),{passive:false});
+    document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
   </script>
-<script src="../../assets/home-button.js"></script>
+  <script src="../../assets/home-button.js"></script>
 </body>
 </html>
 
