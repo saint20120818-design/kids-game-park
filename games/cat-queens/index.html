@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#8ad9ec">
+  <meta name="description" content="每列、每行和每個顏色區域放一隻貓咪的邏輯遊戲。">
+  <title>貓咪皇后棋｜彩色邏輯遊戲</title>
+  <style>
+    :root{--ink:#29445a;--sky:#8ad9ec;--cream:#fff9e9;--orange:#ff826b}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;min-height:100%;margin:0;overflow-x:hidden}
+    body{background:linear-gradient(#8ad9ec 0 31%,#fff8df 31%);color:var(--ink);font-family:Arial,"Noto Sans TC",sans-serif;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+    button{font:inherit;color:inherit;touch-action:manipulation}
+    .game{position:relative;min-height:100svh;max-width:620px;margin:auto;padding:calc(12px + env(safe-area-inset-top)) 12px calc(14px + env(safe-area-inset-bottom))}
+    .cloud{position:absolute;width:92px;height:25px;border-radius:40px;background:#ffffff99}.cloud::before,.cloud::after{content:"";position:absolute;bottom:0;border-radius:50%;background:inherit}.cloud::before{left:15px;width:40px;height:40px}.cloud::after{right:10px;width:50px;height:50px}.c1{left:-35px;top:90px}.c2{right:-27px;top:145px;transform:scale(.6)}
+    header{position:relative;z-index:2;text-align:center}
+    h1{display:inline-flex;align-items:center;gap:7px;margin:0;padding:8px 16px;border:4px solid white;border-radius:20px;background:#ff826b;color:white;font-size:clamp(23px,7vw,34px);line-height:1;box-shadow:0 6px 0 #ca5648;text-shadow:0 2px #a7443a}
+    h1 span{font-size:1.15em;animation:headBob 1.3s ease-in-out infinite alternate}
+    .subtitle{width:max-content;max-width:94%;margin:10px auto 0;padding:6px 13px;border-radius:99px;background:#ffffffdd;color:#327d92;font-size:13px;font-weight:1000;box-shadow:0 4px 0 #50a8bd}
+    .panel{position:relative;z-index:3;margin-top:13px;padding:12px;border:4px solid white;border-radius:28px;background:#fffdf2;box-shadow:0 9px 0 #d9c98e,0 15px 28px #49647422}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .level{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:1000}.level b{display:grid;place-items:center;min-width:72px;padding:7px 10px;border-radius:13px;background:#dff4f7;color:#34798c}
+    .tools{display:flex;gap:7px}.tool{display:grid;place-items:center;width:42px;height:42px;padding:0;border:0;border-radius:14px;background:#ffe49b;font-size:21px;font-weight:1000;cursor:pointer;box-shadow:0 4px 0 #d6aa41}.tool:active{transform:translateY(3px);box-shadow:0 1px 0 #d6aa41}
+    .board-wrap{display:grid;place-items:center;min-height:310px}
+    .board{display:grid;width:min(86vw,430px);aspect-ratio:1;border:5px solid #344e5d;border-radius:14px;background:#344e5d;overflow:hidden;touch-action:none;box-shadow:0 7px 0 #233845}
+    .cell{position:relative;display:grid;place-items:center;margin:0;padding:0;border:0;background:var(--region);font-size:clamp(28px,10vw,54px);cursor:pointer}
+    .cell::before{content:"";position:absolute;inset:0;border-top:var(--bt,1px) solid #4f6370;border-right:var(--br,1px) solid #4f6370;border-bottom:var(--bb,1px) solid #4f6370;border-left:var(--bl,1px) solid #4f6370;pointer-events:none}
+    .cell .mark{position:relative;z-index:1;display:grid;place-items:center;width:100%;height:100%;line-height:1}
+    .cell.x .mark::after{content:"×";color:#516978;font-size:.8em;font-weight:900;opacity:.7}
+    .cell.cat .mark::after{content:"🐱";filter:drop-shadow(0 3px 0 #ffffffaa);animation:catIn .24s ease}
+    .cell.bad{z-index:2;box-shadow:inset 0 0 0 5px #e84949;background:#ffb0a9!important;animation:shake .25s ease}
+    .cell.wrong{z-index:4;box-shadow:inset 0 0 0 6px #ef8997;background:#ffd3d8!important;animation:wrongFlash .18s ease 3}
+    .cell.wrong .mark::after{content:"😿";font-size:.88em;filter:drop-shadow(0 3px 0 #ffffffaa)}
+    .cell:focus-visible{z-index:3;outline:5px solid #245fcf;outline-offset:-5px}
+    .status{min-height:38px;margin:11px 0 0;padding:8px 12px;border-radius:15px;background:#eef6f3;color:#526b76;font-size:14px;font-weight:900;text-align:center}
+    .status.good{background:#dcf6cb;color:#347441}.status.warn{background:#ffe0d7;color:#a64c3e}
+    .rules{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:9px}
+    .rule{display:flex;align-items:center;gap:7px;min-height:42px;padding:6px 8px;border-radius:13px;background:#f1eee3;font-size:11px;font-weight:900;line-height:1.15}.rule i{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:9px;background:white;font-style:normal;font-size:16px}
+    .help{margin:9px 0 0;text-align:center;color:#826e51;font-size:12px;font-weight:900}.help b{color:#db604d}
+    .finish{position:fixed;z-index:100;inset:0;display:none;place-items:center;padding:24px;background:#3d91a9d9}.finish.show{display:grid;animation:fade .25s}
+    .finish-card{width:min(420px,100%);padding:27px 20px;border:5px solid white;border-radius:30px;background:#fff9e9;text-align:center;box-shadow:0 11px 0 #236e82}.finish-cat{font-size:76px;animation:celebrate .55s ease-in-out infinite alternate}.finish h2{margin:5px 0;color:#e26751;font-size:31px}.finish p{margin:5px 0 18px;font-weight:900}.next{width:100%;min-height:56px;border:0;border-radius:18px;background:#ff806b;color:white;font-size:19px;font-weight:1000;box-shadow:0 7px 0 #c95347;cursor:pointer}.next:active{transform:translateY(6px);box-shadow:0 1px 0 #c95347}
+    @keyframes headBob{to{transform:rotate(8deg) translateY(-3px)}}@keyframes catIn{50%{transform:scale(1.25) rotate(-5deg)}}@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}@keyframes wrongFlash{50%{transform:scale(.92)}}@keyframes fade{from{opacity:0}}@keyframes celebrate{to{transform:translateY(-9px) rotate(5deg)}}
+    @media(max-height:740px){.game{padding-top:7px}h1{font-size:22px}.subtitle{margin-top:6px}.panel{margin-top:8px;padding:9px}.toolbar{margin-bottom:7px}.board-wrap{min-height:0}.board{width:min(68vh,82vw,390px)}.rules{display:none}.help{margin-top:7px}}
+    @media(min-width:520px){.rule{font-size:13px}.rules{gap:8px}.panel{padding:16px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="game">
+    <div class="cloud c1" aria-hidden="true"></div><div class="cloud c2" aria-hidden="true"></div>
+    <header>
+      <h1><span>🐱</span>貓咪皇后棋</h1>
+      <p class="subtitle">每個地方，都要有一隻貓咪！</p>
+    </header>
+    <section class="panel">
+      <div class="toolbar">
+        <div class="level"><b id="size-label">4 × 4</b><span>第 <span id="level-number">1</span>／6 關</span></div>
+        <div class="tools">
+          <button class="tool undo" aria-label="復原一步">↶</button>
+          <button class="tool reset" aria-label="重新開始">↻</button>
+        </div>
+      </div>
+      <div class="board-wrap"><div id="board" class="board" role="grid" aria-label="貓咪皇后棋盤"></div></div>
+      <p id="status" class="status" role="status" aria-live="polite">點一下畫 ×，快速點兩下放 🐱</p>
+      <div class="rules" aria-label="遊戲規則">
+        <div class="rule"><i>↔</i>每一橫列 1 隻</div><div class="rule"><i>↕</i>每一直行 1 隻</div>
+        <div class="rule"><i>🎨</i>每個顏色 1 隻</div><div class="rule"><i>↘</i>斜角不能相鄰</div>
+      </div>
+      <p class="help"><b>滑過格子</b>可以快速畫 ×</p>
+    </section>
+  </main>
+  <section class="finish" aria-live="polite">
+    <div class="finish-card"><div class="finish-cat">😺✨</div><h2>全部找到啦！</h2><p>每隻貓咪都有自己的位置！</p><button class="next">下一關</button></div>
+  </section>
+  <script>
+    (()=>{
+      'use strict';
+      const levels=[
+        {n:4,r:[0,0,0,0,0,2,1,1,2,2,1,1,3,3,3,3],s:[1,3,0,2]},
+        {n:4,r:[0,0,0,0,1,1,0,0,3,3,2,2,3,3,3,2],s:[2,0,3,1]},
+        {n:5,r:[0,0,2,2,2,0,1,1,1,2,0,0,3,2,2,3,3,3,3,2,3,3,4,4,2],s:[0,2,4,1,3]},
+        {n:5,r:[2,0,0,1,3,2,2,1,1,3,2,2,2,3,3,2,4,2,3,3,4,4,4,4,3],s:[1,3,0,4,2]},
+        {n:5,r:[2,0,0,0,1,2,1,1,1,1,2,2,2,3,1,2,2,3,3,1,2,4,4,3,3],s:[2,4,0,3,1]},
+        {n:5,r:[3,2,2,2,0,3,1,1,2,0,3,3,4,2,2,3,3,4,4,2,4,4,4,4,2],s:[4,1,3,0,2]}
+      ];
+      const colors=['#ffc8bb','#bdebd0','#bee3f5','#ffe8a8','#d9ccf3'];
+      const board=document.querySelector('#board'),status=document.querySelector('#status'),finish=document.querySelector('.finish');
+      let levelIndex=0,state=[],history=[],dragging=false,moved=false,startPoint=null,lastCell=null,tapTimer=null,audio;
+
+      function render(){
+        const level=levels[levelIndex],n=level.n;
+        state=Array(n*n).fill(0);history=[];board.innerHTML='';board.style.gridTemplateColumns=`repeat(${n},1fr)`;
+        document.querySelector('#size-label').textContent=`${n} × ${n}`;document.querySelector('#level-number').textContent=levelIndex+1;
+        level.r.forEach((region,index)=>{
+          const row=Math.floor(index/n),col=index%n,cell=document.createElement('button');
+          cell.className='cell';cell.type='button';cell.dataset.index=index;cell.style.setProperty('--region',colors[region]);
+          const top=row===0||level.r[index-n]!==region?3:1,right=col===n-1||level.r[index+1]!==region?3:1,bottom=row===n-1||level.r[index+n]!==region?3:1,left=col===0||level.r[index-1]!==region?3:1;
+          cell.style.setProperty('--bt',top+'px');cell.style.setProperty('--br',right+'px');cell.style.setProperty('--bb',bottom+'px');cell.style.setProperty('--bl',left+'px');
+          cell.setAttribute('role','gridcell');cell.setAttribute('aria-label',`第 ${row+1} 列，第 ${col+1} 行，空白`);
+          cell.innerHTML='<span class="mark"></span>';board.append(cell);
+        });
+        finish.classList.remove('show');setStatus('點一下畫 ×，快速點兩下放 🐱');paint();
+      }
+      function setStatus(text,type=''){status.textContent=text;status.className='status'+(type?' '+type:'')}
+      function save(){history.push([...state]);if(history.length>40)history.shift()}
+      function setCell(index,value,record=true){if(record)save();state[index]=value;paint();check()}
+      function paint(){
+        const n=levels[levelIndex].n;
+        [...board.children].forEach((cell,index)=>{
+          cell.classList.toggle('x',state[index]===1);cell.classList.toggle('cat',state[index]===2);cell.classList.remove('bad');
+          const row=Math.floor(index/n),col=index%n,label=state[index]===2?'貓咪':state[index]===1?'叉叉':'空白';
+          cell.setAttribute('aria-label',`第 ${row+1} 列，第 ${col+1} 行，${label}`);
+        });
+      }
+      function conflicts(){
+        const {n,r}=levels[levelIndex],cats=state.map((v,i)=>v===2?i:-1).filter(i=>i>=0),bad=new Set();
+        for(let a=0;a<cats.length;a++)for(let b=a+1;b<cats.length;b++){
+          const i=cats[a],j=cats[b],ri=Math.floor(i/n),rj=Math.floor(j/n),ci=i%n,cj=j%n;
+          if(ri===rj||ci===cj||r[i]===r[j]||(Math.abs(ri-rj)===1&&Math.abs(ci-cj)===1)){bad.add(i);bad.add(j)}
+        }
+        return bad;
+      }
+      function check(){
+        const level=levels[levelIndex],cats=state.filter(v=>v===2).length,bad=conflicts();
+        bad.forEach(i=>board.children[i].classList.add('bad'));
+        if(bad.size){setStatus('這兩隻貓咪太靠近了，再換個位置吧！','warn');softTone(190);return}
+        if(cats<level.n){setStatus(`已找到 ${cats} 隻，還要找 ${level.n-cats} 隻貓咪`);return}
+        const rows=new Set(),cols=new Set(),regions=new Set();
+        state.forEach((v,i)=>{if(v===2){rows.add(Math.floor(i/level.n));cols.add(i%level.n);regions.add(level.r[i])}});
+        if(rows.size===level.n&&cols.size===level.n&&regions.size===level.n){setStatus('太棒了！全部都放對了！','good');happySound();setTimeout(()=>finish.classList.add('show'),500)}
+        else setStatus('快完成了，再看看顏色和直線！','warn');
+      }
+      function softTone(freq){try{audio??=new(window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;g.gain.setValueAtTime(.045,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.12);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+.12)}catch(e){}}
+      function happySound(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>softTone(f),i*110))}
+      function markX(index){
+        if(state[index]===2)return;
+        if(state[index]!==1){save();state[index]=1;paint();check();softTone(360)}
+      }
+      function placeCat(index){
+        clearTimeout(tapTimer);
+        const level=levels[levelIndex],row=Math.floor(index/level.n),correctIndex=row*level.n+level.s[row],cell=board.children[index];
+        if(index!==correctIndex){
+          cell.classList.add('wrong');setStatus('哭哭貓說：這格不是我的位置～','warn');softTone(170);navigator.vibrate?.(70);
+          setTimeout(()=>{cell.classList.remove('wrong');check()},650);return;
+        }
+        if(state[index]===2){setStatus('這隻貓咪已經找到位置了！','good');return}
+        setCell(index,2);softTone(620);
+      }
+      board.addEventListener('pointerdown',event=>{
+        const cell=event.target.closest('.cell');if(!cell)return;event.preventDefault();dragging=true;moved=false;lastCell=cell;startPoint={x:event.clientX,y:event.clientY};board.setPointerCapture?.(event.pointerId);
+      });
+      board.addEventListener('pointermove',event=>{
+        if(!dragging)return;event.preventDefault();
+        if(Math.hypot(event.clientX-startPoint.x,event.clientY-startPoint.y)>8)moved=true;
+        if(!moved)return;const cell=document.elementFromPoint(event.clientX,event.clientY)?.closest('.cell');
+        if(cell&&cell!==lastCell){lastCell=cell;markX(+cell.dataset.index)}
+      });
+      board.addEventListener('pointerup',event=>{
+        if(!dragging)return;dragging=false;const cell=event.target.closest('.cell')||lastCell;if(!cell)return;
+        const index=+cell.dataset.index;if(moved){markX(index);return}
+        if(cell.dataset.lastTap&&Date.now()-+cell.dataset.lastTap<310){cell.dataset.lastTap='0';clearTimeout(tapTimer);placeCat(index)}
+        else{cell.dataset.lastTap=Date.now();clearTimeout(tapTimer);tapTimer=setTimeout(()=>{if(state[index]===2)return;setCell(index,state[index]===1?0:1);softTone(360)},315)}
+      });
+      board.addEventListener('pointercancel',()=>{dragging=false});
+      document.querySelector('.undo').addEventListener('click',()=>{if(!history.length)return;state=history.pop();paint();check()});
+      document.querySelector('.reset').addEventListener('click',render);
+      document.querySelector('.next').addEventListener('click',()=>{levelIndex=(levelIndex+1)%levels.length;render()});
+      document.addEventListener('dblclick',event=>event.preventDefault(),{passive:false});
+      document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
+      render();
+    })();
+  </script>
+  <script src="../../assets/home-button.js"></script>
+</body>
+</html>
+
