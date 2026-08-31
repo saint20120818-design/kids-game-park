@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#10bcd1">
+  <meta name="description" content="在海底彩虹鋼琴練習旋律記憶，或自由彈奏和弦。">
+  <title>海底彩虹鋼琴｜旋律記憶與自由演奏</title>
+  <style>
+    :root{--ink:#17485d;--glass:#ffffffdf}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    body{font-family:Arial,"Noto Sans TC",sans-serif;color:var(--ink);background:#08aeca;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+    button{font:inherit;color:inherit;touch-action:manipulation}
+    .game{position:relative;width:100%;height:100svh;min-height:520px;overflow:hidden;background:linear-gradient(#0abbd555,#05689955),url("undersea.webp") center/cover no-repeat}
+    .game::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(#007d9d22 0 55%,#064d6722 100%)}
+    .bubble{position:absolute;z-index:1;width:15px;height:15px;border:2px solid #d9ffffbb;border-radius:50%;box-shadow:inset 2px 2px 5px #fff8;animation:floatUp var(--speed) linear infinite;animation-delay:var(--delay);opacity:.75}
+    .top{position:relative;z-index:6;display:flex;align-items:center;justify-content:center;padding:calc(10px + env(safe-area-inset-top)) 12px 0}
+    h1{margin:0;padding:7px 16px;border:4px solid white;border-radius:18px;background:#22c0d7e8;color:white;font-size:clamp(21px,5vw,32px);line-height:1;box-shadow:0 6px 0 #087d9a;text-shadow:0 2px #08768d;backdrop-filter:blur(6px)}
+    .mode-tabs{position:absolute;z-index:8;top:calc(62px + env(safe-area-inset-top));left:50%;display:flex;width:min(430px,78%);padding:4px;border:3px solid white;border-radius:18px;background:#e9ffffd9;box-shadow:0 5px 0 #168399;transform:translateX(-50%);backdrop-filter:blur(8px)}
+    .mode{flex:1;min-height:42px;border:0;border-radius:12px;background:transparent;font-size:15px;font-weight:1000;cursor:pointer}
+    .mode.active{background:#ff826b;color:white;box-shadow:0 3px 0 #c85449}
+    .play-area{position:absolute;z-index:5;inset:calc(120px + env(safe-area-inset-top)) 10px 38%;display:grid;place-items:center;pointer-events:none}
+    .lesson-card{position:relative;width:min(470px,94%);padding:13px 16px;border:4px solid white;border-radius:25px;background:#fffce9e8;text-align:center;box-shadow:0 8px 0 #d6b85e,0 14px 28px #073a4f44;backdrop-filter:blur(8px);pointer-events:auto}
+    .lesson-card.hidden{display:none}
+    .round{display:inline-block;padding:4px 10px;border-radius:99px;background:#d9f7f1;color:#26806e;font-size:12px;font-weight:1000}
+    .lesson-card h2{margin:7px 0 2px;color:#e16551;font-size:clamp(20px,5vw,28px)}
+    .prompt{min-height:23px;margin:4px 0 9px;font-size:14px;font-weight:900;color:#52717a}
+    .sequence{display:flex;justify-content:center;gap:7px;min-height:42px;margin:4px 0}
+    .note-dot{display:grid;place-items:center;width:38px;height:38px;border:3px solid white;border-radius:13px;background:var(--c);color:#185164;font-size:13px;font-weight:1000;box-shadow:0 4px 0 #6d8b9438;opacity:.38;transform:scale(.84);transition:.14s}
+    .note-dot.on,.note-dot.done{opacity:1;transform:scale(1.08)}.note-dot.on{outline:4px solid #ff7d65}
+    .start{min-width:170px;min-height:47px;margin-top:5px;border:0;border-radius:16px;background:#ff826b;color:white;font-size:17px;font-weight:1000;box-shadow:0 6px 0 #c95347;cursor:pointer}
+    .start:active{transform:translateY(5px);box-shadow:0 1px 0 #c95347}
+    .free-card{display:none;width:min(420px,88%);padding:13px 18px;border:4px solid white;border-radius:24px;background:#e8ffffd9;text-align:center;box-shadow:0 7px 0 #15869a;backdrop-filter:blur(8px)}
+    .free-card.show{display:block}.free-card h2{margin:0;color:#16788b;font-size:clamp(21px,5vw,28px)}.free-card p{margin:5px 0 0;font-size:13px;font-weight:900}
+    .now-playing{display:flex;justify-content:center;align-items:center;gap:5px;min-height:34px;margin-top:5px;font-size:25px}
+    .music-note{display:inline-block;color:#ff735e;animation:notePop .42s ease forwards}
+    .piano{position:absolute;z-index:10;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));height:38%;min-height:185px;padding-bottom:env(safe-area-inset-bottom);touch-action:none}
+    .key{position:relative;display:flex;align-items:flex-end;justify-content:center;min-width:0;min-height:0;padding:0 2px 19px;border:0;border-right:3px solid #ffffff88;border-radius:18px 18px 0 0;background:linear-gradient(#fff7 0 6%,transparent 7%),var(--key);color:#245266;font-size:clamp(16px,4vw,27px);font-weight:1000;text-shadow:0 2px #ffffff66;box-shadow:inset 0 7px 0 #fff4,inset 0 -9px 0 #0001;cursor:pointer;transform-origin:bottom;transition:filter .08s,transform .08s}
+    .key::before{content:"";position:absolute;left:14%;right:14%;top:9%;height:8px;border-radius:10px;background:#ffffff55}
+    .key::after{content:attr(data-key);position:absolute;right:7px;top:14px;display:grid;place-items:center;width:21px;height:21px;border-radius:7px;background:#ffffff77;font-size:10px;text-shadow:none}
+    .key.active{z-index:2;filter:brightness(1.18) saturate(1.25);transform:translateY(8px) scaleX(.97);box-shadow:inset 0 12px 0 #fff8,inset 0 -3px 0 #0001}
+    .key.target{animation:keyGlow .42s ease 2}
+    .key small{display:block;font-size:.48em;opacity:.7}
+    .celebrate{position:fixed;z-index:30;inset:0;display:none;place-items:center;padding:22px;background:#087b99c9}
+    .celebrate.show{display:grid;animation:fade .25s}
+    .success{width:min(410px,100%);padding:25px 18px;border:5px solid white;border-radius:30px;background:#fff9e9;text-align:center;box-shadow:0 10px 0 #135f75}
+    .success .big{font-size:68px;animation:bounce .55s ease-in-out infinite alternate}.success h2{margin:4px 0;color:#e26351;font-size:29px}.success p{margin:5px 0 16px;font-weight:900}
+    .next{width:100%;min-height:53px;border:0;border-radius:17px;background:#ff826b;color:white;font-size:18px;font-weight:1000;box-shadow:0 6px 0 #c95347;cursor:pointer}
+    @keyframes floatUp{from{transform:translateY(110vh) scale(.6)}to{transform:translateY(-20vh) scale(1.2)}}@keyframes notePop{from{transform:translateY(15px) scale(.4);opacity:0}50%{transform:translateY(-6px) scale(1.2)}to{opacity:0;transform:translateY(-24px)}}@keyframes keyGlow{50%{filter:brightness(1.35);transform:translateY(7px)}}@keyframes bounce{to{transform:translateY(-9px) rotate(4deg)}}@keyframes fade{from{opacity:0}}
+    @media(max-width:600px){.game{min-height:500px}.mode-tabs{width:74%;top:calc(57px + env(safe-area-inset-top))}.play-area{inset:calc(109px + env(safe-area-inset-top)) 5px 40%}.lesson-card{padding:9px 10px}.lesson-card h2{margin-top:4px}.sequence{min-height:35px}.note-dot{width:32px;height:32px;border-radius:10px}.prompt{margin-bottom:5px}.start{min-height:42px}.piano{height:40%;min-height:190px}.key{padding-bottom:14px;border-right-width:2px;border-radius:12px 12px 0 0}.key::after{display:none}}
+    @media(max-height:650px) and (orientation:landscape){h1{font-size:19px}.top{padding-top:6px}.mode-tabs{top:49px;width:340px}.mode{min-height:35px}.play-area{inset:91px 8px 43%}.lesson-card{padding:7px 11px}.lesson-card h2{font-size:19px;margin:2px}.prompt{margin:2px 0 4px}.sequence{min-height:30px;margin:2px}.note-dot{width:29px;height:29px}.start{min-height:36px;margin-top:2px}.piano{height:43%;min-height:150px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="game">
+    <span class="bubble" style="left:8%;--speed:10s;--delay:-3s"></span><span class="bubble" style="left:21%;--speed:13s;--delay:-8s"></span><span class="bubble" style="left:68%;--speed:11s;--delay:-5s"></span><span class="bubble" style="left:88%;--speed:15s;--delay:-11s"></span>
+    <header class="top"><h1>🎵 海底彩虹鋼琴</h1></header>
+    <div class="mode-tabs" role="tablist" aria-label="選擇遊戲模式">
+      <button class="mode active" data-mode="learn" role="tab" aria-selected="true">🧠 學習模式</button>
+      <button class="mode" data-mode="free" role="tab" aria-selected="false">🎹 演奏模式</button>
+    </div>
+    <section class="play-area">
+      <div class="lesson-card">
+        <span class="round">第 <b id="round">1</b> 關・<b id="count">2</b> 個音</span>
+        <h2 id="song-title">小星星</h2>
+        <p id="prompt" class="prompt" role="status" aria-live="polite">先聽一次，再照順序彈奏</p>
+        <div id="sequence" class="sequence" aria-label="旋律提示"></div>
+        <button id="start" class="start">▶ 聽示範</button>
+      </div>
+      <div class="free-card">
+        <h2>一起彈奏吧！</h2><p>可以同時按好幾個琴鍵喔</p><div id="now-playing" class="now-playing" aria-live="polite">♪</div>
+      </div>
+    </section>
+    <div class="piano" aria-label="彩虹鋼琴">
+      <button class="key" data-note="0" data-key="1" style="--key:#ff5b98">do</button>
+      <button class="key" data-note="1" data-key="2" style="--key:#ff9e3d">re</button>
+      <button class="key" data-note="2" data-key="3" style="--key:#ffe04f">mi</button>
+      <button class="key" data-note="3" data-key="4" style="--key:#aee548">fa</button>
+      <button class="key" data-note="4" data-key="5" style="--key:#42d49b">so</button>
+      <button class="key" data-note="5" data-key="6" style="--key:#35cde0">la</button>
+      <button class="key" data-note="6" data-key="7" style="--key:#7773e9">ti</button>
+      <button class="key" data-note="7" data-key="8" style="--key:#9c45df">do</button>
+    </div>
+  </main>
+  <section class="celebrate" aria-live="polite">
+    <div class="success"><div class="big">🐙🎶</div><h2>旋律彈對了！</h2><p id="song-message">一起聽小星星吧！</p><button class="next">下一關</button></div>
+  </section>
+  <script>
+    (()=>{
+      'use strict';
+      const noteNames=['do','re','mi','fa','so','la','ti','do'],freq=[261.63,293.66,329.63,349.23,392,440,493.88,523.25];
+      const colors=['#ff5b98','#ff9e3d','#ffe04f','#aee548','#42d49b','#35cde0','#7773e9','#9c45df'];
+      const lessons=[
+        {title:'小星星',need:[0,0],song:[0,0,4,4,5,5,4,3,3,2,2,1,1,0]},
+        {title:'瑪莉有隻小綿羊',need:[2,1,0],song:[2,1,0,1,2,2,2,1,1,1,2,4,4]},
+        {title:'歡樂頌',need:[2,2,3,4],song:[2,2,3,4,4,3,2,1,0,0,1,2,2,1,1]},
+        {title:'划小船',need:[0,0,0,1,2],song:[0,0,0,1,2,2,1,2,3,4,7,7,7,4,4,4,2,2,2,0,0,0,4,3,2,1,0]}
+      ];
+      const keys=[...document.querySelectorAll('.key')],lessonCard=document.querySelector('.lesson-card'),freeCard=document.querySelector('.free-card');
+      const prompt=document.querySelector('#prompt'),sequence=document.querySelector('#sequence'),startButton=document.querySelector('#start'),celebrate=document.querySelector('.celebrate');
+      let audio,master,mode='learn',round=0,input=[],accepting=false,playing=false,playToken=0;
+      const voices=new Map(),keyboardVoices=new Map();
+
+      function setupAudio(){
+        if(audio)return;
+        audio=new(window.AudioContext||window.webkitAudioContext)();master=audio.createGain();master.gain.value=.38;master.connect(audio.destination);
+      }
+      function makeVoice(note,volume=.8){
+        setupAudio();const now=audio.currentTime,o=audio.createOscillator(),o2=audio.createOscillator(),g=audio.createGain();
+        o.type='triangle';o.frequency.value=freq[note];o2.type='sine';o2.frequency.value=freq[note]*2;g.gain.setValueAtTime(.001,now);g.gain.exponentialRampToValueAtTime(volume,now+.025);
+        o.connect(g);o2.connect(g);g.connect(master);o.start();o2.start();return{o,o2,g,note};
+      }
+      function stopVoice(voice,quick=false){
+        if(!voice||!audio)return;const now=audio.currentTime;voice.g.gain.cancelScheduledValues(now);voice.g.gain.setValueAtTime(Math.max(.001,voice.g.gain.value),now);voice.g.gain.exponentialRampToValueAtTime(.001,now+(quick?.04:.16));voice.o.stop(now+(quick?.06:.2));voice.o2.stop(now+(quick?.06:.2));
+      }
+      function light(note,on=true){keys[note].classList.toggle('active',on)}
+      function noteBurst(note){
+        const box=document.querySelector('#now-playing'),el=document.createElement('span');el.className='music-note';el.textContent='♪';el.style.color=colors[note];box.append(el);setTimeout(()=>el.remove(),480);
+      }
+      function playShort(note,duration=330,token=playToken){
+        const voice=makeVoice(note,.72);light(note,true);keys[note].classList.add('target');noteBurst(note);
+        setTimeout(()=>{stopVoice(voice);light(note,false);keys[note].classList.remove('target')},duration);return token;
+      }
+      async function playNotes(notes,step=430){
+        playing=true;accepting=false;const token=++playToken;
+        for(let i=0;i<notes.length;i++){if(token!==playToken)return;playShort(notes[i],Math.min(340,step-70),token);await wait(step)}
+        if(token===playToken)playing=false;
+      }
+      function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+      function renderLesson(){
+        const data=lessons[round];input=[];accepting=false;playing=false;playToken++;
+        document.querySelector('#round').textContent=round+1;document.querySelector('#count').textContent=data.need.length;document.querySelector('#song-title').textContent=data.title;
+        sequence.innerHTML=data.need.map((n,i)=>`<span class="note-dot" style="--c:${colors[n]}" data-i="${i}">${noteNames[n]}</span>`).join('');
+        prompt.textContent='先聽一次，再照順序彈奏';startButton.hidden=false;startButton.textContent='▶ 聽示範';celebrate.classList.remove('show');
+      }
+      async function demo(){
+        if(playing)return;startButton.hidden=true;prompt.textContent='仔細聽、仔細看～';
+        const dots=[...sequence.children],data=lessons[round];playing=true;const token=++playToken;
+        for(let i=0;i<data.need.length;i++){if(token!==playToken)return;dots.forEach(d=>d.classList.remove('on'));dots[i].classList.add('on');playShort(data.need[i],360,token);await wait(470)}
+        if(token!==playToken)return;dots.forEach(d=>d.classList.remove('on'));playing=false;accepting=true;input=[];prompt.textContent='換你彈奏囉！';
+      }
+      async function learningPress(note){
+        if(!accepting||playing)return;
+        const data=lessons[round],at=input.length;input.push(note);
+        if(note!==data.need[at]){
+          accepting=false;prompt.textContent='差一點點，再聽一次吧！';sequence.children[at]?.classList.add('on');await wait(650);[...sequence.children].forEach(d=>d.classList.remove('on','done'));input=[];await demo();return;
+        }
+        sequence.children[at]?.classList.add('done');
+        if(input.length===data.need.length){
+          accepting=false;prompt.textContent='答對了！來聽完整兒歌～';await wait(420);await playNotes(data.song,310);
+          document.querySelector('#song-message').textContent=`一起聽${data.title}吧！`;celebrate.classList.add('show');
+        }
+      }
+      function press(note,id){
+        if(voices.has(id))return;setupAudio();audio.resume();const voice=makeVoice(note,.68);voices.set(id,voice);light(note,true);noteBurst(note);
+        if(mode==='learn')learningPress(note);
+      }
+      function release(id){
+        const voice=voices.get(id);if(!voice)return;voices.delete(id);stopVoice(voice);if(![...voices.values()].some(v=>v.note===voice.note)&&![...keyboardVoices.values()].some(v=>v.note===voice.note))light(voice.note,false);
+      }
+      keys.forEach(key=>{
+        key.addEventListener('pointerdown',event=>{event.preventDefault();key.setPointerCapture?.(event.pointerId);press(+key.dataset.note,'p'+event.pointerId)});
+        key.addEventListener('pointerup',event=>release('p'+event.pointerId));key.addEventListener('pointercancel',event=>release('p'+event.pointerId));
+      });
+      document.addEventListener('keydown',event=>{
+        const note='12345678'.indexOf(event.key);if(note<0||keyboardVoices.has(event.code))return;event.preventDefault();setupAudio();audio.resume();const voice=makeVoice(note,.68);keyboardVoices.set(event.code,voice);light(note,true);noteBurst(note);if(mode==='learn')learningPress(note);
+      });
+      document.addEventListener('keyup',event=>{const voice=keyboardVoices.get(event.code);if(!voice)return;keyboardVoices.delete(event.code);stopVoice(voice);if(![...voices.values()].some(v=>v.note===voice.note))light(voice.note,false)});
+      function changeMode(next){
+        mode=next;playToken++;playing=false;accepting=false;voices.forEach(stopVoice);voices.clear();keyboardVoices.forEach(stopVoice);keyboardVoices.clear();keys.forEach(k=>k.classList.remove('active','target'));
+        document.querySelectorAll('.mode').forEach(button=>{const active=button.dataset.mode===mode;button.classList.toggle('active',active);button.setAttribute('aria-selected',active)});
+        lessonCard.classList.toggle('hidden',mode==='free');freeCard.classList.toggle('show',mode==='free');
+        if(mode==='learn')renderLesson();
+      }
+      document.querySelectorAll('.mode').forEach(button=>button.addEventListener('click',()=>changeMode(button.dataset.mode)));
+      startButton.addEventListener('click',()=>{setupAudio();audio.resume();demo()});
+      document.querySelector('.next').addEventListener('click',()=>{round=(round+1)%lessons.length;renderLesson()});
+      document.addEventListener('dblclick',event=>event.preventDefault(),{passive:false});document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
+      renderLesson();
+    })();
+  </script>
+  <script src="../../assets/home-button.js"></script>
+</body>
+</html>
